@@ -793,12 +793,40 @@ static int dsi_panel_update_backlight(struct dsi_panel *panel,
 
 	dsi = &panel->mipi_device;
 
-#if defined(CONFIG_DISPLAY_SAMSUNG)
-	rc = ss_brightness_dcs(panel->panel_private, bl_lvl, BACKLIGHT_NORMAL);
-	if (rc < 0)
-		LCD_INFO("failed to update dcs backlight:%d\n", bl_lvl);
-#else
-	rc = mipi_dsi_dcs_set_display_brightness(dsi, bl_lvl);
+	if (panel->bl_config.bl_high2bit) {
+		if (HBM_flag == true)
+			return 0;
+
+		if (cur_backlight == bl_lvl && (mode_fps != cur_fps ||
+				 cur_h != panel->cur_mode->timing.h_active) && !hbm_finger_print) {
+			cur_fps = mode_fps;
+			cur_h = panel->cur_mode->timing.h_active;
+			return 0;
+		}
+
+		if (hbm_brightness_flag == 1) {
+			count = mode->priv_info->cmd_sets[DSI_CMD_SET_HBM_BRIGHTNESS_OFF].count;
+			if (!count) {
+				pr_err("This panel does not support HBM brightness off mode.\n");
+				goto error;
+			}
+			else {
+				rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_HBM_BRIGHTNESS_OFF);
+				pr_err("Send DSI_CMD_SET_HBM_BRIGHTNESS_OFF cmds.\n");
+				hbm_brightness_flag = 0;
+			}
+		}
+
+		rc = mipi_dsi_dcs_set_display_brightness_samsung(dsi, bl_lvl);
+		pr_debug("backlight = %d\n", bl_lvl);
+		cur_backlight = bl_lvl;
+		cur_fps = mode_fps;
+		cur_h = panel->cur_mode->timing.h_active;
+		hbm_finger_print = false;
+	}
+	else
+		rc = mipi_dsi_dcs_set_display_brightness(dsi,
+			bl_lvl);
 	if (rc < 0)
 		pr_err("failed to update dcs backlight:%d\n", bl_lvl);
 #endif
