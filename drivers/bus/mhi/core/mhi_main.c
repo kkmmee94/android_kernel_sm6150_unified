@@ -1912,9 +1912,11 @@ error_invalid_state:
 int mhi_debugfs_mhi_states_show(struct seq_file *m, void *d)
 {
 	struct mhi_controller *mhi_cntrl = m->private;
+	struct mhi_link_info *cur_info = &mhi_cntrl->mhi_link_info;
 
 	seq_printf(m,
-		   "pm_state:%s dev_state:%s EE:%s M0:%u M2:%u M3:%u M3_Fast:%u wake:%d dev_wake:%u alloc_size:%u pending_pkts:%u\n",
+		   "[%llu ns]: pm_state:%s dev_state:%s EE:%s M0:%u M2:%u M3:%u M3_Fast:%u wake:%d dev_wake:%u alloc_size:%u pending_pkts:%u last_requested_bw:GEN%dx%d\n",
+		   sched_clock(),
 		   to_mhi_pm_state_str(mhi_cntrl->pm_state),
 		   TO_MHI_STATE_STR(mhi_cntrl->dev_state),
 		   TO_MHI_EXEC_STR(mhi_cntrl->ee),
@@ -1922,7 +1924,9 @@ int mhi_debugfs_mhi_states_show(struct seq_file *m, void *d)
 		   mhi_cntrl->M3_FAST, mhi_cntrl->wake_set,
 		   atomic_read(&mhi_cntrl->dev_wake),
 		   atomic_read(&mhi_cntrl->alloc_size),
-		   atomic_read(&mhi_cntrl->pending_pkts));
+		   atomic_read(&mhi_cntrl->pending_pkts),
+		   cur_info->target_link_speed,
+		   cur_info->target_link_width);
 	return 0;
 }
 
@@ -1989,6 +1993,49 @@ int mhi_debugfs_mhi_chan_show(struct seq_file *m, void *d)
 				   mhi_chan->db_cfg.db_val);
 		}
 	}
+
+	return 0;
+}
+
+/* show bus/device votes for a specific device */
+static int mhi_device_vote_show(struct device *dev, void *data)
+{
+	struct mhi_device *mhi_dev;
+	struct mhi_controller *mhi_cntrl;
+
+	if (dev->bus != &mhi_bus_type)
+		return 0;
+
+	mhi_dev = to_mhi_device(dev);
+	mhi_cntrl = mhi_dev->mhi_cntrl;
+
+	/* we dont care about timesync or similar special devices */
+	if (mhi_dev->dev_type == MHI_TIMESYNC_TYPE)
+		return 0;
+
+	seq_printf((struct seq_file *)data, "%s: device:%u, bus:%u\n",
+		   mhi_dev->chan_name, atomic_read(&mhi_dev->dev_vote),
+		   atomic_read(&mhi_dev->bus_vote));
+
+	return 0;
+}
+
+int mhi_debugfs_mhi_vote_show(struct seq_file *m, void *d)
+{
+	struct mhi_controller *mhi_cntrl = m->private;
+	struct mhi_device *mhi_dev;
+
+	if (!mhi_cntrl)
+		return 0;
+
+	mhi_dev = mhi_cntrl->mhi_dev;
+
+	seq_printf(m, "[%llu ns]:\n", sched_clock());
+	seq_printf(m, "%s: device:%u, bus:%u\n", mhi_dev->chan_name,
+		   atomic_read(&mhi_dev->dev_vote),
+		   atomic_read(&mhi_dev->bus_vote));
+
+	device_for_each_child(mhi_cntrl->dev, m, mhi_device_vote_show);
 
 	return 0;
 }
