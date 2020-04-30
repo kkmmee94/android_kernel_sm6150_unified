@@ -854,6 +854,11 @@ static int mhi_hwc_chcmd(struct mhi_dev *mhi, uint chid,
 			return -EINVAL;
 		}
 
+		if ((chid-HW_CHANNEL_BASE) > NUM_HW_CHANNELS) {
+			pr_err("Invalid Channel = 0x%X\n", chid);
+			return -EINVAL;
+		}
+
 		rc = ipa_mhi_connect_pipe(&connect_params,
 			&mhi->ipa_clnt_hndl[chid-HW_CHANNEL_BASE]);
 		if (rc)
