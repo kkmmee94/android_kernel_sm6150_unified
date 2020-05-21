@@ -1347,8 +1347,45 @@ int mhi_process_tsync_event_ring(struct mhi_controller *mhi_cntrl,
 		return -EIO;
 	}
 
-	dev_rp = mhi_to_virtual(ev_ring, er_ctxt->rp);
-	local_rp = ev_ring->rp;
+	/* if rp points to base, we need to wrap it around */
+	if (dev_rp == ev_ring->base)
+		dev_rp = ev_ring->base + ev_ring->len;
+	dev_rp--;
+
+	/* fast forward to currently processed element and recycle er */
+	ev_ring->rp = dev_rp;
+	ev_ring->wp = dev_rp - 1;
+	if (ev_ring->wp < ev_ring->base)
+		ev_ring->wp = ev_ring->base + ev_ring->len - ev_ring->el_size;
+	mhi_recycle_fwd_ev_ring_element(mhi_cntrl, ev_ring);
+
+	MHI_ASSERT(MHI_TRE_GET_EV_TYPE(dev_rp) != MHI_PKT_TYPE_TSYNC_EVENT,
+		   "!TSYNC event");
+
+	sequence = MHI_TRE_GET_EV_TSYNC_SEQ(dev_rp);
+	remote_time = MHI_TRE_GET_EV_TIME(dev_rp);
+
+	MHI_VERB("Received TSYNC event with seq:0x%llx time:0x%llx\n",
+		 sequence, remote_time);
+
+	read_lock_bh(&mhi_cntrl->pm_lock);
+	if (likely(MHI_DB_ACCESS_VALID(mhi_cntrl)))
+		mhi_ring_er_db(mhi_event);
+	read_unlock_bh(&mhi_cntrl->pm_lock);
+	spin_unlock_bh(&mhi_event->lock);
+
+	mutex_lock(&mhi_cntrl->tsync_mutex);
+
+	if (unlikely(mhi_tsync->int_sequence != sequence)) {
+		MHI_ASSERT(1, "Unexpected response:0x%llx Expected:0x%llx\n",
+			   sequence, mhi_tsync->int_sequence);
+
+		mhi_device_put(mhi_cntrl->mhi_dev,
+			       MHI_VOTE_DEVICE | MHI_VOTE_BUS);
+
+		mutex_unlock(&mhi_cntrl->tsync_mutex);
+		goto exit_tsync_process;
+	}
 
 	while (dev_rp != local_rp) {
 		enum MHI_PKT_TYPE type = MHI_TRE_GET_EV_TYPE(local_rp);
@@ -1359,8 +1396,13 @@ int mhi_process_tsync_event_ring(struct mhi_controller *mhi_cntrl,
 
 		MHI_ASSERT(type != MHI_PKT_TYPE_TSYNC_EVENT, "!TSYNC event");
 
-		sequence = MHI_TRE_GET_EV_SEQ(local_rp);
-		remote_time = MHI_TRE_GET_EV_TIME(local_rp);
+	mhi_tsync->db_response_pending = false;
+	mhi_tsync->remote_time = remote_time;
+	complete(&mhi_tsync->db_completion);
+
+	mhi_device_put(mhi_cntrl->mhi_dev, MHI_VOTE_DEVICE | MHI_VOTE_BUS);
+
+	mutex_unlock(&mhi_cntrl->tsync_mutex);
 
 		do {
 			spin_lock_irq(&mhi_tsync->lock);
@@ -2247,11 +2289,38 @@ int mhi_get_remote_time_sync(struct mhi_device *mhi_dev,
 {
 	struct mhi_controller *mhi_cntrl = mhi_dev->mhi_cntrl;
 	struct mhi_timesync *mhi_tsync = mhi_cntrl->mhi_tsync;
+	u64 local_time;
 	int ret;
 
-	/* not all devices support time feature */
+	/* not all devices support time features */
 	if (!mhi_tsync)
+		return -EINVAL;
+
+	if (unlikely(MHI_PM_IN_ERROR_STATE(mhi_cntrl->pm_state))) {
+		MHI_ERR("MHI is not in active state, pm_state:%s\n",
+			to_mhi_pm_state_str(mhi_cntrl->pm_state));
 		return -EIO;
+	}
+
+	mutex_lock(&mhi_cntrl->tsync_mutex);
+
+	/* return times from last async request completion */
+	if (mhi_tsync->db_response_pending) {
+		local_time = mhi_tsync->local_time;
+		mutex_unlock(&mhi_cntrl->tsync_mutex);
+
+		ret = wait_for_completion_timeout(&mhi_tsync->db_completion,
+				       msecs_to_jiffies(mhi_cntrl->timeout_ms));
+		if (MHI_PM_IN_ERROR_STATE(mhi_cntrl->pm_state) || !ret) {
+			MHI_ERR("Pending DB request did not complete, abort\n");
+			return -EAGAIN;
+		}
+
+		*t_host = local_time;
+		*t_dev = mhi_tsync->remote_time;
+
+		return 0;
+	}
 
 	/* bring to M0 state */
 	ret = __mhi_device_get_sync(mhi_cntrl);
@@ -2320,12 +2389,14 @@ int mhi_get_remote_time(struct mhi_device *mhi_dev,
 	struct tsync_node *tsync_node;
 	int ret;
 
-	/* not all devices support time feature */
-	if (!mhi_tsync)
-		return -EIO;
+	/* not all devices support all time features */
+	if (!mhi_tsync || !mhi_tsync->db_support)
+		return -EINVAL;
 
-	/* tsync db can only be rung in M0 state */
-	ret = __mhi_device_get_sync(mhi_cntrl);
+	mutex_lock(&mhi_cntrl->tsync_mutex);
+
+	ret = mhi_device_get_sync(mhi_cntrl->mhi_dev,
+				  MHI_VOTE_DEVICE | MHI_VOTE_BUS);
 	if (ret)
 		return ret;
 
@@ -2374,19 +2445,28 @@ int mhi_get_remote_time(struct mhi_device *mhi_dev,
 	local_irq_enable();
 	preempt_enable();
 
-	ret = 0;
-
-error_invalid_state:
-	if (ret)
-		kfree(tsync_node);
-	read_unlock_bh(&mhi_cntrl->pm_lock);
 	mhi_cntrl->lpm_enable(mhi_cntrl, mhi_cntrl->priv_data);
 
-error_no_mem:
-	read_lock_bh(&mhi_cntrl->pm_lock);
-	mhi_cntrl->wake_put(mhi_cntrl, false);
-	read_unlock_bh(&mhi_cntrl->pm_lock);
+	MHI_VERB("time DB request with seq:0x%llx\n", mhi_tsync->int_sequence);
 
+	mhi_tsync->db_response_pending = true;
+	init_completion(&mhi_tsync->db_completion);
+
+skip_tsync_db:
+	spin_lock(&mhi_tsync->lock);
+	list_add_tail(&tsync_node->node, &mhi_tsync->head);
+	spin_unlock(&mhi_tsync->lock);
+
+	mutex_unlock(&mhi_cntrl->tsync_mutex);
+
+	return 0;
+
+error_invalid_state:
+	kfree(tsync_node);
+error_no_mem:
+	mhi_device_put(mhi_cntrl->mhi_dev, MHI_VOTE_DEVICE | MHI_VOTE_BUS);
+error_unlock:
+	mutex_unlock(&mhi_cntrl->tsync_mutex);
 	return ret;
 }
 EXPORT_SYMBOL(mhi_get_remote_time);

@@ -665,6 +665,21 @@ struct mhi_timesync {
 	u32 er_index;
 	void __iomem *db;
 	void __iomem *time_reg;
+	u32 int_sequence;
+	u64 local_time;
+	u64 remote_time;
+	bool db_support;
+	bool db_response_pending;
+	struct completion db_completion;
+	spinlock_t lock; /* list protection */
+	struct list_head head;
+};
+
+struct mhi_sfr_info {
+	void *buf_addr;
+	dma_addr_t dma_addr;
+	size_t len;
+	char *str;
 	enum MHI_EV_CCS ccs;
 	struct completion completion;
 	spinlock_t lock; /* list protection */

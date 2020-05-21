@@ -159,7 +159,15 @@ void mhi_destroy_vote_sysfs(struct mhi_controller *mhi_cntrl)
 {
 	struct mhi_device *mhi_dev = mhi_cntrl->mhi_dev;
 
-	sysfs_remove_group(&mhi_dev->dev.kobj, &mhi_vote_group);
+		if (mhi_tsync->db_response_pending)
+			complete(&mhi_tsync->db_completion);
+
+		kfree(mhi_cntrl->mhi_tsync);
+		mhi_cntrl->mhi_tsync = NULL;
+		mutex_unlock(&mhi_cntrl->tsync_mutex);
+	}
+
+	sysfs_remove_group(&mhi_dev->dev.kobj, &mhi_sysfs_group);
 
 	/* relinquish any pending votes for device */
 	while (atomic_read(&mhi_dev->dev_vote))
