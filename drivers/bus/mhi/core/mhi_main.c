@@ -1399,6 +1399,29 @@ int mhi_process_tsync_event_ring(struct mhi_controller *mhi_cntrl,
 	if (likely(MHI_DB_ACCESS_VALID(mhi_cntrl)))
 		mhi_ring_er_db(mhi_event);
 	read_unlock_bh(&mhi_cntrl->pm_lock);
+	spin_unlock_bh(&mhi_event->lock);
+
+	ret = mhi_device_get_sync(mhi_cntrl->mhi_dev,
+				  MHI_VOTE_DEVICE | MHI_VOTE_BUS);
+	if (ret)
+		goto exit_bw_scale_process;
+
+	mutex_lock(&mhi_cntrl->pm_mutex);
+
+	ret = mhi_cntrl->bw_scale(mhi_cntrl, &link_info);
+	if (!ret)
+		*cur_info = link_info;
+
+	result = ret ? MHI_BW_SCALE_NACK : 0;
+
+	read_lock_bh(&mhi_cntrl->pm_lock);
+	if (likely(MHI_DB_ACCESS_VALID(mhi_cntrl)))
+		mhi_cntrl->write_reg(mhi_cntrl, mhi_cntrl->bw_scale_db, 0,
+				     MHI_BW_SCALE_RESULT(result,
+				     link_info.sequence_num));
+	read_unlock_bh(&mhi_cntrl->pm_lock);
+
+	mhi_device_put(mhi_cntrl->mhi_dev, MHI_VOTE_DEVICE | MHI_VOTE_BUS);
 
 	MHI_VERB("exit er_index:%u\n", mhi_event->er_index);
 
