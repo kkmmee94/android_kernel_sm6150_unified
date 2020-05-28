@@ -694,6 +694,8 @@ struct mhi_bus {
 
 /* default MHI timeout */
 #define MHI_TIMEOUT_MS (1000)
+#define MHI_FORCE_WAKE_DELAY_US (100)
+
 extern struct mhi_bus mhi_bus;
 
 /* debug fs related functions */
