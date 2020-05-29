@@ -205,6 +205,7 @@ static int qrtr_mhi_dev_probe(struct platform_device *pdev)
 	struct qrtr_mhi_dev_ep *qep;
 	struct device_node *node;
 	int rc;
+	struct mhi_dev_client_cb_data cb_data;
 
 	qep = devm_kzalloc(&pdev->dev, sizeof(*qep), GFP_KERNEL);
 	if (!qep)
@@ -227,9 +228,22 @@ static int qrtr_mhi_dev_probe(struct platform_device *pdev)
 	init_completion(&qep->out_tre);
 	qep->ep.xmit = qrtr_mhi_dev_send;
 	rc = mhi_register_state_cb(qrtr_mhi_dev_state_cb, qep,
-				   QRTR_MHI_DEV_IN);
-	if (rc)
+				   QRTR_MHI_DEV_OUT);
+	if (rc == -EEXIST) {
+		/**
+		 * MHI stack will return -EEXIST if mhi channel is already
+		 * opend by the host and will not invoke reqistered callback.
+		 * But future state change notification will inform through
+		 * registered callback.
+		 */
+		complete_all(&qep->out_tre);
+		cb_data.user_data = (void *)qep;
+		cb_data.channel = QRTR_MHI_DEV_OUT;
+		cb_data.ctrl_info = MHI_STATE_CONNECTED;
+		qrtr_mhi_dev_state_cb(&cb_data);
+	} else if (rc) {
 		return rc;
+	}
 
 	return 0;
 }
