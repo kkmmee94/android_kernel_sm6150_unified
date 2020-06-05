@@ -754,6 +754,97 @@ static int cnss_qca6174_ramdump(struct cnss_pci_data *pci_priv)
 	return ret;
 }
 
+static int cnss_pci_force_wake_get(struct cnss_pci_data *pci_priv)
+{
+	struct device *dev = &pci_priv->pci_dev->dev;
+	int ret;
+
+	ret = cnss_pci_force_wake_request_sync(dev,
+					       FORCE_WAKE_DELAY_TIMEOUT_US);
+	if (ret) {
+		if (ret != -EAGAIN)
+			cnss_pr_err("Failed to request force wake\n");
+		return ret;
+	}
+
+	/* If device's M1 state-change event races here, it can be ignored,
+	 * as the device is expected to immediately move from M2 to M0
+	 * without entering low power state.
+	 */
+	if (cnss_pci_is_device_awake(dev) != true)
+		cnss_pr_warn("MHI not in M0, while reg still accessible\n");
+
+	return 0;
+}
+
+static int cnss_pci_force_wake_put(struct cnss_pci_data *pci_priv)
+{
+	struct device *dev = &pci_priv->pci_dev->dev;
+	int ret;
+
+	ret = cnss_pci_force_wake_release(dev);
+	if (ret)
+		cnss_pr_err("Failed to release force wake\n");
+
+	return ret;
+}
+
+static void cnss_pci_set_wlaon_pwr_ctrl(struct cnss_pci_data *pci_priv,
+					bool set_vddd4blow, bool set_shutdown,
+					bool do_force_wake)
+{
+	struct cnss_plat_data *plat_priv = pci_priv->plat_priv;
+	int ret;
+	u32 val;
+
+	if (!plat_priv->set_wlaon_pwr_ctrl)
+		return;
+
+	if (do_force_wake)
+		if (cnss_pci_force_wake_get(pci_priv))
+			return;
+
+	ret = cnss_pci_reg_read(pci_priv, QCA6390_WLAON_QFPROM_PWR_CTRL_REG,
+				&val);
+	if (ret) {
+		cnss_pr_err("Failed to read register offset 0x%x, err = %d\n",
+			    QCA6390_WLAON_QFPROM_PWR_CTRL_REG, ret);
+		goto force_wake_put;
+	}
+
+	cnss_pr_dbg("Read register offset 0x%x, val = 0x%x\n",
+		    QCA6390_WLAON_QFPROM_PWR_CTRL_REG, val);
+
+	if (set_vddd4blow)
+		val |= QFPROM_PWR_CTRL_VDD4BLOW_SW_EN_MASK;
+	else
+		val &= ~QFPROM_PWR_CTRL_VDD4BLOW_SW_EN_MASK;
+
+	if (set_shutdown)
+		val |= QFPROM_PWR_CTRL_SHUTDOWN_EN_MASK;
+	else
+		val &= ~QFPROM_PWR_CTRL_SHUTDOWN_EN_MASK;
+
+	ret = cnss_pci_reg_write(pci_priv, QCA6390_WLAON_QFPROM_PWR_CTRL_REG,
+				 val);
+	if (ret) {
+		cnss_pr_err("Failed to write register offset 0x%x, err = %d\n",
+			    QCA6390_WLAON_QFPROM_PWR_CTRL_REG, ret);
+		goto force_wake_put;
+	}
+
+	cnss_pr_dbg("Write val 0x%x to register offset 0x%x\n", val,
+		    QCA6390_WLAON_QFPROM_PWR_CTRL_REG);
+
+	if (set_shutdown)
+		usleep_range(WLAON_PWR_CTRL_SHUTDOWN_DELAY_MIN_US,
+			     WLAON_PWR_CTRL_SHUTDOWN_DELAY_MAX_US);
+
+force_wake_put:
+	if (do_force_wake)
+		cnss_pci_force_wake_put(pci_priv);
+}
+
 static int cnss_qca6290_powerup(struct cnss_pci_data *pci_priv)
 {
 	int ret = 0;
@@ -1722,6 +1813,31 @@ int cnss_pm_request_resume(struct cnss_pci_data *pci_priv)
 
 	return pm_request_resume(&pci_dev->dev);
 }
+
+int cnss_pci_force_wake_request_sync(struct device *dev, int timeout_us)
+{
+	struct pci_dev *pci_dev = to_pci_dev(dev);
+	struct cnss_pci_data *pci_priv = cnss_get_pci_priv(pci_dev);
+	struct cnss_plat_data *plat_priv;
+	struct mhi_controller *mhi_ctrl;
+
+	if (pci_priv->device_id != QCA6390_DEVICE_ID)
+		return 0;
+
+	mhi_ctrl = pci_priv->mhi_ctrl;
+	if (!mhi_ctrl)
+		return -EINVAL;
+
+	plat_priv = pci_priv->plat_priv;
+	if (!plat_priv)
+		return -ENODEV;
+
+	if (test_bit(CNSS_DEV_ERR_NOTIFY, &plat_priv->driver_state))
+		return -EAGAIN;
+
+	return mhi_device_get_sync_atomic(mhi_ctrl->mhi_dev, timeout_us);
+}
+EXPORT_SYMBOL(cnss_pci_force_wake_request_sync);
 
 int cnss_pci_force_wake_request(struct device *dev)
 {
