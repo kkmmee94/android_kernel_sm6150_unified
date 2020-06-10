@@ -16,6 +16,7 @@
 
 #include <linux/netdevice.h>
 #include <linux/skbuff.h>
+#include <linux/timer.h>
 
 #define IP_VER_4 4
 #define IP_VER_6 6
@@ -30,6 +31,8 @@
 #define DFC_MODE_MQ_NUM 3
 extern int dfc_mode;
 
+struct qos_info;
+
 struct rmnet_bearer_map {
 	struct list_head list;
 	u8 bearer_id;
@@ -43,6 +46,14 @@ struct rmnet_bearer_map {
 	bool tcp_bidir;
 	bool rat_switch;
 	bool tx_off;
+	u32 ack_txid;
+	u32 mq_idx;
+	u32 ack_mq_idx;
+	struct qos_info *qos;
+	struct timer_list watchdog;
+	bool watchdog_started;
+	bool watchdog_quit;
+	u32 watchdog_expire_cnt;
 };
 
 struct rmnet_flow_map {
@@ -68,12 +79,14 @@ struct mq_map {
 struct qos_info {
 	u8 mux_id;
 	struct net_device *real_dev;
+	struct net_device *vnd_dev;
 	struct list_head flow_head;
 	struct list_head bearer_head;
 	struct mq_map mq[MAX_MQ_NUM];
 	u32 default_grant;
 	u32 tran_num;
 	spinlock_t qos_lock;
+	struct rmnet_bearer_map *removed_bearer;
 };
 
 struct qmi_info {
@@ -133,6 +146,21 @@ void dfc_qmi_query_flow(void *dfc_data);
 int dfc_bearer_flow_ctl(struct net_device *dev,
 			struct rmnet_bearer_map *bearer,
 			struct qos_info *qos);
+
+int dfc_qmap_client_init(void *port, int index, struct svc_info *psvc,
+			 struct qmi_info *qmi);
+
+void dfc_qmap_client_exit(void *dfc_data);
+
+void dfc_qmap_send_ack(struct qos_info *qos, u8 bearer_id, u16 seq, u8 type);
+
+struct rmnet_bearer_map *qmi_rmnet_get_bearer_noref(struct qos_info *qos_info,
+						    u8 bearer_id);
+
+void qmi_rmnet_watchdog_add(struct rmnet_bearer_map *bearer);
+
+void qmi_rmnet_watchdog_remove(struct rmnet_bearer_map *bearer);
+
 #else
 static inline struct rmnet_flow_map *
 qmi_rmnet_get_flow_map(struct qos_info *qos_info,
@@ -175,6 +203,10 @@ dfc_bearer_flow_ctl(struct net_device *dev,
 		    struct qos_info *qos)
 {
 	return 0;
+}
+
+static inline void qmi_rmnet_watchdog_remove(struct rmnet_bearer_map *bearer)
+{
 }
 #endif
 
