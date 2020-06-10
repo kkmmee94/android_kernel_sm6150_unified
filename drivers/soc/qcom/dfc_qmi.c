@@ -1091,8 +1091,27 @@ static int dfc_update_fc_map(struct net_device *dev, struct qos_info *qos,
 		    (itm->grant_size > 0 && fc_info->num_bytes == 0))
 			action = true;
 
-		itm->grant_size = fc_info->num_bytes;
-		itm->grant_thresh = qmi_rmnet_grant_per(itm->grant_size);
+		/* This is needed by qmap */
+		if (dfc_qmap && itm->ack_req && !ack_req && itm->grant_size)
+			dfc_qmap_send_ack(qos, itm->bearer_id,
+					  itm->seq, DFC_ACK_TYPE_DISABLE);
+
+		itm->grant_size = adjusted_grant;
+
+		/* No further query if the adjusted grant is less
+		 * than 20% of the original grant. Add to watch to
+		 * recover if no indication is received.
+		 */
+		if (dfc_qmap && is_query &&
+		    itm->grant_size < (fc_info->num_bytes / 5)) {
+			itm->grant_thresh = itm->grant_size;
+			qmi_rmnet_watchdog_add(itm);
+		} else {
+			itm->grant_thresh =
+				qmi_rmnet_grant_per(itm->grant_size);
+			qmi_rmnet_watchdog_remove(itm);
+		}
+
 		itm->seq = fc_info->seq_num;
 		itm->ack_req = ack_req;
 		itm->tcp_bidir = DFC_IS_TCP_BIDIR(ancillary);
@@ -1188,6 +1207,8 @@ static void dfc_update_tx_link_status(struct net_device *dev,
 	if (itm->grant_size && !tx_status) {
 		itm->grant_size = 0;
 		itm->tcp_bidir = false;
+		itm->bytes_in_flight = 0;
+		qmi_rmnet_watchdog_remove(itm);
 		dfc_bearer_flow_ctl(dev, itm, qos);
 	} else if (itm->grant_size == 0 && tx_status && !itm->rat_switch) {
 		itm->grant_size = DEFAULT_GRANT;
