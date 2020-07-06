@@ -663,8 +663,8 @@ struct hal_heic_grid_enable {
 
 enum hal_flip {
 	HAL_FLIP_NONE,
-	HAL_FLIP_HORIZONTAL,
 	HAL_FLIP_VERTICAL,
+	HAL_FLIP_HORIZONTAL,
 	HAL_FLIP_BOTH,
 	HAL_UNUSED_FLIP = 0x10000000,
 };

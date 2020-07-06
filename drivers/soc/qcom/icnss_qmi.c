@@ -141,7 +141,7 @@ int wlfw_msa_mem_info_send_sync_msg(struct icnss_priv *priv)
 	for (i = 0; i < resp->mem_region_info_len; i++) {
 
 		if (resp->mem_region_info[i].size > priv->msa_mem_size ||
-		    resp->mem_region_info[i].region_addr > max_mapped_addr ||
+		    resp->mem_region_info[i].region_addr >= max_mapped_addr ||
 		    resp->mem_region_info[i].region_addr < priv->msa_pa ||
 		    resp->mem_region_info[i].size +
 		    resp->mem_region_info[i].region_addr > max_mapped_addr) {
@@ -777,9 +777,9 @@ int wlfw_athdiag_read_send_sync_msg(struct icnss_priv *priv,
 			resp->resp.result, resp->resp.error);
 		ret = -resp->resp.result;
 		goto out;
-	} else {
-		ret = 0;
 	}
+	else
+		ret = 0;
 
 	if (!resp->data_valid || resp->data_len < data_len) {
 		icnss_pr_err("Athdiag read data is invalid, data_valid = %u, data_len = %u\n",

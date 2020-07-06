@@ -781,8 +781,7 @@ static int dp_display_process_hpd_high(struct dp_display_private *dp)
 	if (dp->is_connected) {
 		pr_debug("dp already connected, skipping hpd high processing");
 		mutex_unlock(&dp->session_lock);
-		rc = -EISCONN;
-		goto end;
+		return -EISCONN;
 	}
 
 	dp->is_connected = true;
@@ -2155,6 +2154,7 @@ static int dp_display_create_workqueue(struct dp_display_private *dp)
 	return 0;
 }
 
+#if 0
 static int dp_display_fsa4480_callback(struct notifier_block *self,
 		unsigned long event, void *data)
 {
@@ -2193,6 +2193,7 @@ static int dp_display_init_aux_switch(struct dp_display_private *dp)
 end:
 	return rc;
 }
+#endif
 
 static int dp_display_mst_install(struct dp_display *dp_display,
 			struct dp_mst_drm_install_info *mst_install_info)
@@ -2609,12 +2610,13 @@ static int dp_display_probe(struct platform_device *pdev)
 
 	memset(&dp->mst, 0, sizeof(dp->mst));
 	atomic_set(&dp->aborted, 0);
-
+#if 0
 	rc = dp_display_init_aux_switch(dp);
 	if (rc) {
 		rc = -EPROBE_DEFER;
 		goto error;
 	}
+#endif
 
 	rc = dp_display_create_workqueue(dp);
 	if (rc) {

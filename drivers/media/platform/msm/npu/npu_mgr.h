@@ -149,5 +149,9 @@ int32_t npu_host_set_perf_mode(struct npu_client *client, uint32_t network_hdl,
 	uint32_t perf_mode);
 int32_t npu_host_get_perf_mode(struct npu_client *client, uint32_t network_hdl);
 void npu_dump_debug_timeout_stats(struct npu_device *npu_dev);
+void npu_dump_ipc_packet(struct npu_device *npu_dev, void *cmd_ptr);
+void npu_dump_ipc_queue(struct npu_device *npu_dev, uint32_t target_que);
+void npu_dump_dbg_registers(struct npu_device *npu_dev);
+void npu_dump_all_ipc_queue(struct npu_device *npu_dev);
 
 #endif /* _NPU_MGR_H */
