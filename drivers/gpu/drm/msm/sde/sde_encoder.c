@@ -3563,6 +3563,8 @@ static void sde_encoder_frame_done_callback(
 {
 	struct sde_encoder_virt *sde_enc = to_sde_encoder_virt(drm_enc);
 	unsigned int i;
+	bool trigger = true, is_cmd_mode;
+	enum sde_rm_topology_name topology = SDE_RM_TOPOLOGY_NONE;
 
 	if (!drm_enc || !sde_enc->cur_master) {
 		SDE_ERROR("invalid param: drm_enc %lx, cur_master %lx\n",
@@ -3573,19 +3575,15 @@ static void sde_encoder_frame_done_callback(
 
 	sde_enc->crtc_frame_event_cb_data.connector =
 				sde_enc->cur_master->connector;
+	is_cmd_mode = sde_enc->disp_info.capabilities &
+				MSM_DISPLAY_CAP_CMD_MODE;
 
 	if (event & (SDE_ENCODER_FRAME_EVENT_DONE
 			| SDE_ENCODER_FRAME_EVENT_ERROR
-			| SDE_ENCODER_FRAME_EVENT_PANEL_DEAD)) {
-
-		if (!sde_enc->frame_busy_mask[0]) {
-			/**
-			 * suppress frame_done without waiter,
-			 * likely autorefresh
-			 */
-			SDE_EVT32(DRMID(drm_enc), event, ready_phys->intf_idx);
-			return;
-		}
+			| SDE_ENCODER_FRAME_EVENT_PANEL_DEAD) && is_cmd_mode) {
+		if (ready_phys->connector)
+			topology = sde_connector_get_topology_name(
+							ready_phys->connector);
 
 		/* One of the physical encoders has become idle */
 		for (i = 0; i < sde_enc->num_phys_encs; i++) {
@@ -3606,9 +3604,14 @@ static void sde_encoder_frame_done_callback(
 					event);
 		}
 	} else {
-		if (sde_enc->crtc_frame_event_cb)
+		if (sde_enc->crtc_frame_event_cb) {
+			if (!is_cmd_mode)
+				sde_encoder_resource_control(drm_enc,
+						SDE_ENC_RC_EVENT_FRAME_DONE);
+
 			sde_enc->crtc_frame_event_cb(
 				&sde_enc->crtc_frame_event_cb_data, event);
+		}
 	}
 }
 
