@@ -723,8 +723,7 @@ static void wdsp_ssr_work_fn(struct work_struct *work)
 
 	/* Issue ramdumps and shutdown only if DSP is currently booted */
 	if (WDSP_STATUS_IS_SET(wdsp, WDSP_STATUS_BOOTED)) {
-		/* block ramdump function to support wdsp ssr */
-		/* wdsp_collect_ramdumps(wdsp); */
+		wdsp_collect_ramdumps(wdsp);
 		ret = wdsp_unicast_event(wdsp, WDSP_CMPNT_CONTROL,
 					 WDSP_EVENT_DO_SHUTDOWN, NULL);
 		if (ret < 0)
@@ -1066,8 +1065,6 @@ static void wdsp_mgr_debugfs_init(struct wdsp_mgr_priv *wdsp)
 
 	debugfs_create_bool("panic_on_error", 0644,
 			    wdsp->entry, &wdsp->panic_on_error);
-
-	wdsp->panic_on_error = 1;
 }
 
 static void wdsp_mgr_debugfs_remove(struct wdsp_mgr_priv *wdsp)

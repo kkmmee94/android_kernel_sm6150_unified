@@ -21,7 +21,6 @@ int q6audio_get_afe_cal_validation(u16 port_id, u32 topology_id);
 /****************************************************************************/
 #define MODULE_ID_PP_SS_REC             0x10001050
 #define PARAM_ID_PP_SS_REC_GETPARAMS    0x10001052
-#define PARAM_ID_PP_SS_REC_SETPARAMS    0x1000BA30
 
 #define MODULE_ID_PP_SA                 0x10001fa0
 #define PARAM_ID_PP_SA_PARAMS           0x10001fa1
@@ -106,10 +105,6 @@ struct asm_stream_cmd_set_pp_params_dolby_atmos {
 	int16_t dolby_profile;
 } __packed;
 
-struct adm_param_interview_operating_mode {
-	uint32_t onoff;
-} __packed;
-
 /****************************************************************************/
 /*//////////////////////////// VOICE SOLUTION //////////////////////////////*/
 /****************************************************************************/
@@ -151,8 +146,6 @@ struct adm_param_interview_operating_mode {
 
 #define VOICE_MODULE_SET_DEVICE				0x10041000
 #define VOICE_MODULE_SET_DEVICE_PARAM		0x10041001
-
-#define DIAMONDVOICE_REMOTEVOL_PARAM		0x10001012
 
 struct vss_icommon_cmd_set_ui_property_v2_t {
 	uint32_t module_id;
@@ -238,11 +231,6 @@ struct cvp_set_ref_lch_mute_enable_cmd {
 struct cvp_set_aec_effect_cmd {
 	struct apr_hdr hdr;
 	struct vss_icommon_cmd_set_ui_property_v2_t cvp_set_aec_effect;
-} __packed;
-
-struct cvp_set_voice_remote_mic_cmd {
-	struct apr_hdr hdr;
-	struct vss_icommon_cmd_set_ui_property_v2_t cvp_set_voice_remote_mic;
 } __packed;
 
 void voice_sec_loopback_start_cmd(u32 session_id);

@@ -66,7 +66,6 @@ LOCAL_MODULE_DEBUG_ENABLE := true
 LOCAL_MODULE_PATH         := $(KERNEL_MODULES_OUT)
 include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
-ifdef CONFIG_SOUNDWIRE
 include $(CLEAR_VARS)
 LOCAL_MODULE              := $(AUDIO_CHIPSET)_swr.ko
 LOCAL_MODULE_KBUILD_NAME  := swr_dlkm.ko
@@ -74,9 +73,7 @@ LOCAL_MODULE_TAGS         := optional
 LOCAL_MODULE_DEBUG_ENABLE := true
 LOCAL_MODULE_PATH         := $(KERNEL_MODULES_OUT)
 include $(DLKM_DIR)/AndroidKernelModule.mk
-endif
 ###########################################################
-ifdef CONFIG_SOUNDWIRE_WCD_CTRL
 include $(CLEAR_VARS)
 LOCAL_MODULE              := $(AUDIO_CHIPSET)_swr_ctrl.ko
 LOCAL_MODULE_KBUILD_NAME  := swr_ctrl_dlkm.ko
@@ -84,7 +81,6 @@ LOCAL_MODULE_TAGS         := optional
 LOCAL_MODULE_DEBUG_ENABLE := true
 LOCAL_MODULE_PATH         := $(KERNEL_MODULES_OUT)
 include $(DLKM_DIR)/AndroidKernelModule.mk
-endif
 ###########################################################
 ifeq ($(call is-board-platform-in-list, $(MSMSTEPPE) atoll $(TRINKET)),true)
 include $(CLEAR_VARS)

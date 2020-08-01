@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015-2018, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -44,7 +44,7 @@
 /* Z floating defined in ohms */
 #define TAVIL_ZDET_FLOATING_IMPEDANCE 0x0FFFFFFE
 
-#define TAVIL_ZDET_NUM_MEASUREMENTS   250
+#define TAVIL_ZDET_NUM_MEASUREMENTS   900
 #define TAVIL_MBHC_GET_C1(c)          ((c & 0xC000) >> 14)
 #define TAVIL_MBHC_GET_X1(x)          (x & 0x3FFF)
 /* Z value compared in milliOhm */
@@ -151,8 +151,6 @@ static struct wcd_mbhc_register
 			  WCD934X_MBHC_NEW_CTL_1, 0x04, 2, 0),
 	WCD_MBHC_REGISTER("WCD_MBHC_ELECT_ISRC_EN",
 			  WCD934X_ANA_MBHC_ZDET, 0x02, 1, 0),
-	WCD_MBHC_REGISTER("WCD_MBHC_NOISE_FILT_CTRL",
-			  WCD934X_MICB2_TEST_CTL_3, 0x80, 7, 0),
 };
 
 static const struct wcd_mbhc_intr intr_ids = {
@@ -594,13 +592,11 @@ static void tavil_wcd_mbhc_calc_impedance(struct wcd_mbhc *mbhc, uint32_t *zl,
 					  uint32_t *zr)
 {
 	struct snd_soc_codec *codec = mbhc->codec;
-	struct wcd9xxx_pdata *pdata = dev_get_platdata(codec->dev->parent);
 	struct wcd9xxx *wcd9xxx = dev_get_drvdata(codec->dev->parent);
 	s16 reg0, reg1, reg2, reg3, reg4;
 	int32_t z1L, z1R, z1Ls;
 	int zMono, z_diff1, z_diff2;
 	bool is_fsm_disable = false;
-	int i;
 	struct tavil_mbhc_zdet_param zdet_param[] = {
 		{4, 0, 4, 0x08, 0x14, 0x18}, /* < 32ohm */
 		{2, 0, 3, 0x18, 0x7C, 0x90}, /* 32ohm < Z < 400ohm */
@@ -672,18 +668,6 @@ left_ch_impedance:
 	}
 	dev_dbg(codec->dev, "%s: impedance on HPH_L = %d(ohms)\n",
 		__func__, *zl);
-
-	/* Samsung impedance detection and additional digital gain */
-	for (i = 0; i < ARRAY_SIZE(pdata->imp_table); i++) {
-		if (*zl >= pdata->imp_table[i].min &&
-			*zl <= pdata->imp_table[i].max) {
-			mbhc->impedance_offset =
-				pdata->imp_table[i].gain;
-			dev_info(codec->dev, "%s: zl = %d, imped offset = %d\n",
-				__func__, *zl, mbhc->impedance_offset);
-			break;
-		}
-	}
 
 	/* Start of right impedance ramp and calculation */
 	tavil_mbhc_zdet_ramp(codec, zdet_param_ptr, NULL, &z1R, d1);
@@ -1095,7 +1079,6 @@ int tavil_mbhc_init(struct wcd934x_mbhc **mbhc, struct snd_soc_codec *codec,
 	struct wcd934x_mbhc *wcd934x_mbhc;
 	struct wcd_mbhc *wcd_mbhc;
 	int ret;
-	struct wcd9xxx_pdata *pdata;
 
 	wcd934x_mbhc = devm_kzalloc(codec->dev, sizeof(struct wcd934x_mbhc),
 				    GFP_KERNEL);
@@ -1115,14 +1098,6 @@ int tavil_mbhc_init(struct wcd934x_mbhc **mbhc, struct snd_soc_codec *codec,
 
 	/* Setting default mbhc detection logic to ADC for Tavil */
 	wcd_mbhc->mbhc_detection_logic = WCD_DETECTION_ADC;
-
-	pdata = dev_get_platdata(codec->dev->parent);
-	if (!pdata) {
-		dev_err(codec->dev, "%s: pdata pointer is NULL\n", __func__);
-		ret = -EINVAL;
-		goto err;
-	}
-	wcd_mbhc->micb_mv = pdata->micbias.micb2_mv;
 
 	ret = wcd_mbhc_init(wcd_mbhc, codec, &mbhc_cb,
 				&intr_ids, wcd_mbhc_registers,
