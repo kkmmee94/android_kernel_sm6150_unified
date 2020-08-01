@@ -14,7 +14,7 @@
  * Description	: TI Smartamp algorithm control interface
  *
  */
-#ifdef CONFIG_TAS25XX_ALGO
+//#ifdef CONFIG_TAS25XX_ALGO
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -32,6 +32,7 @@
 #include <linux/file.h>
 #include <asm/uaccess.h>
 #include <linux/fs.h>
+#include <linux/delay.h>
 #include <dsp/q6afe-v2.h>
 #include <linux/of.h>
 #include <dsp/smart_amp.h>
@@ -47,6 +48,8 @@ static bool validation_running_status = 0;
 static uint32_t calib_re_hold[MAX_CHANNELS] = {0};
 static uint32_t amb_temp_hold[MAX_CHANNELS] = {0};
 static int32_t g_iv_vbat_fmt = IV_SENSE_FORMAT_NO_VBAT;
+static int32_t re_low[MAX_CHANNELS] = {0};
+static int32_t re_high[MAX_CHANNELS] = {0};
 
 /*Mutex to serialize DSP read/write commands*/
 static struct mutex routing_lock;
@@ -55,14 +58,8 @@ static struct tas25xx_algo* p_tas25xx_algo = NULL;
 /*Max value supported is 2^8*/
 static uint8_t trans_val_to_user_m(uint32_t val, uint8_t qformat)
 {
-    uint32_t ret = (uint32_t)(((long)val * 1000) >> qformat) % 1000;
-    uint32_t modval = ret % 10;
-
-	if (modval >= 5 ) {
-        ret += (10 - modval);
-    }
-
-	return (uint8_t)(ret/10);
+	uint32_t ret = (uint32_t)(((long long)val * 1000) >> qformat) % 1000;
+	return (uint8_t)(ret / 10);
 }
 
 /*Max value supported is 2^8*/
@@ -273,6 +270,55 @@ bool tas25xx_set_iv_bit_fomat(int iv_data_with, int vbat, int update_now)
 	return success;
 }
 
+int tas25xx_update_calibration_limits(void)
+{
+	uint8_t iter = 0;
+	uint32_t param_id = 0;
+	int32_t ret = 0;
+
+	/*Reset Calibration Result*/
+	memset(calibration_result, STATUS_NONE, sizeof(uint8_t)*MAX_CHANNELS);
+
+	for(iter = 0; iter < p_tas25xx_algo->spk_count; iter++)
+	{
+		/*Update Lower limit for calibration*/
+		re_low[iter] = 0;//Reset data to 0
+		param_id = ((TAS_SA_GET_RE_LOW)|((iter+1)<<24)|(1<<16));
+		ret = afe_smartamp_algo_ctrl((u8*)&re_low[iter], param_id,
+			TAS_GET_PARAM, sizeof(uint32_t), AFE_SMARTAMP_MODULE_RX);
+		if (ret < 0) {
+			pr_err("[TI-SmartPA:%s]get re low fail channel no %d Exiting ..\n", __func__, iter);
+			return -1;
+		}
+		re_low[iter] = re_low[iter] >> 8; /* Qformat 27 -> 19*/
+		/*Update Upper limit for calibration*/
+		re_high[iter] = 0;//Reset data to 0
+		param_id = ((TAS_SA_GET_RE_HIGH)|((iter+1)<<24)|(1<<16));
+		ret = afe_smartamp_algo_ctrl((u8*)&re_high[iter], param_id,
+			TAS_GET_PARAM, sizeof(uint32_t), AFE_SMARTAMP_MODULE_RX);
+		if (ret < 0) {
+			pr_err("[TI-SmartPA:%s]get re high fail channel no %d Exiting ..\n", __func__, iter);
+			return -1;
+		}
+		re_high[iter] = re_high[iter] >> 8; /* Qformat 27 -> 19*/
+		pr_err("[TI-SmartPA:%s] Channel No:%d, Rdc Limits(%02d.%02d ~ %02d.%02d) \n", __func__, iter,
+			(int32_t)trans_val_to_user_i(re_low[iter], QFORMAT19), (int32_t)trans_val_to_user_m(re_low[iter], QFORMAT19),
+			(int32_t)trans_val_to_user_i(re_high[iter], QFORMAT19), (int32_t)trans_val_to_user_m(re_high[iter], QFORMAT19));
+	}
+	return 0;
+}
+
+int tas25xx_check_limits(uint8_t channel, int32_t rdc)
+{
+	if((rdc >= re_low[channel]) && (rdc <= re_high[channel]))
+	{
+		calibration_result[channel] = STATUS_SUCCESS;
+		return 1;
+	}
+	calibration_result[channel] = STATUS_FAIL;
+	return 0;
+}
+
 void tas25xx_send_algo_calibration(void)
 {
 	uint32_t calib_re = 0;
@@ -350,41 +396,59 @@ static int tas25xx_save_calib_data(uint32_t *calib_rdc)
 /*******************************Calibration Related Codes Start*************************************/
 static void calib_work_routine(struct work_struct *work)
 {
-	uint8_t iter = 0;
+	uint8_t iter = 0, iter2 = 0;
 	uint32_t data = 0;
 	uint32_t param_id = 0;
 	uint32_t calib_re[MAX_CHANNELS] = {0};
 	int32_t ret = 0;
 	
+	if(tas25xx_update_calibration_limits())
+		return;
+
 	/*Get Re*/
-	for(iter = 0; iter < p_tas25xx_algo->spk_count; iter++)
+	for(iter2 = 0; iter2 < CALIB_RETRY_COUNT; iter2++)
 	{
-		data = 0;//Reset data to 0
-		param_id = ((TAS_SA_GET_RE)|((iter+1)<<24)|(1<<16));
-		ret = afe_smartamp_algo_ctrl((u8*)&data, param_id,
-			TAS_GET_PARAM, sizeof(uint32_t), AFE_SMARTAMP_MODULE_RX);
-		if (ret < 0) {
-			calibration_result[iter] = STATUS_FAIL;
-			pr_info("[TI-SmartPA:%s]get re fail. Exiting ..\n", __func__);
-		} else {
-			calib_re[iter] = data;
-			calibration_result[iter] = STATUS_SUCCESS;
-			pr_info("[TI-SmartPA:%s]calib_re is %02d.%02d (%d) \n", __func__,
-				(int32_t)trans_val_to_user_i(calib_re[iter], QFORMAT19), (int32_t)trans_val_to_user_m(calib_re[iter], QFORMAT19),
-				(int32_t)calib_re[iter]);
+		for(iter = 0; iter < p_tas25xx_algo->spk_count; iter++)
+		{
+			if(calibration_result[iter] == STATUS_SUCCESS)
+				continue;
+			/*Calinration Init*/
+			data = 1;/*Value is ignored*/
+			param_id = (TAS_SA_CALIB_INIT)|((iter+1)<<24)|(1<<16);
+			ret = afe_smartamp_algo_ctrl((u8*)&data, param_id
+				, TAS_SET_PARAM, sizeof(uint32_t), AFE_SMARTAMP_MODULE_RX);
+			if (ret < 0)
+			{
+				pr_err("[TI-SmartPA:%s] Init error. Exiting ..", __func__);
+				return;
+			}
+
+			msleep(CALIB_TIME*1000);
+
+			data = 0;//Reset data to 0
+			param_id = ((TAS_SA_GET_RE)|((iter+1)<<24)|(1<<16));
+			ret = afe_smartamp_algo_ctrl((u8*)&data, param_id,
+				TAS_GET_PARAM, sizeof(uint32_t), AFE_SMARTAMP_MODULE_RX);
+			if (ret < 0) {
+				calibration_result[iter] = STATUS_FAIL;
+				pr_info("[TI-SmartPA:%s]get re fail. Exiting ..\n", __func__);
+			} else {
+				calib_re[iter] = data;
+				pr_info("[TI-SmartPA:%s]calib_re is %02d.%02d (%d) \n", __func__,
+					(int32_t)trans_val_to_user_i(calib_re[iter], QFORMAT19), (int32_t)trans_val_to_user_m(calib_re[iter], QFORMAT19),
+					(int32_t)calib_re[iter]);
+				if(tas25xx_check_limits(iter, calib_re[iter]))
+					pr_info("[TI-SmartPA:%s] Calibration Pass Channel No:%d", __func__, iter);
+			}
+			/*Calibration De-Init*/
+			data = 1;//Value is ignored
+			param_id = (TAS_SA_CALIB_DEINIT)|((iter+1)<<24)|(1<<16);
+			ret = afe_smartamp_algo_ctrl((u8*)&data, param_id, TAS_SET_PARAM, sizeof(uint32_t), AFE_SMARTAMP_MODULE_RX);
+			/*Wait some time*/
+			msleep(200);
 		}
 	}
 	tas25xx_save_calib_data(calib_re);
-
-	//De-Init
-	for(iter = 0; iter < p_tas25xx_algo->spk_count; iter++)
-	{
-		data = 1;//Value is ignored
-		param_id = (TAS_SA_CALIB_DEINIT)|((iter+1)<<24)|(1<<16);
-		ret = afe_smartamp_algo_ctrl((u8*)&data, param_id
-			, TAS_SET_PARAM, sizeof(uint32_t), AFE_SMARTAMP_MODULE_RX);
-		/*return is ignored*/
-	}
 	calibration_status = 0;
 	return;
 }
@@ -414,40 +478,22 @@ static ssize_t tas25xx_calib_calibration_store(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t size)
 {
-	uint8_t iter = 0;
-	uint32_t data = 0;
-	uint32_t param_id = 0;
 	int32_t ret = 0;
 	int32_t start;
-	
+
 	ret = kstrtos32(buf, 10, &start);
 	if(ret)
 	{
 		pr_err("[TI-SmartPA:%s] Invalid input", __func__);
 		goto end;
 	}
-	
+
 	if(start)
 	{
-		//Init
-		for(iter = 0; iter < p_tas25xx_algo->spk_count; iter++)
-		{
-			data = 1;/*Value is ignored*/
-			param_id = (TAS_SA_CALIB_INIT)|((iter+1)<<24)|(1<<16);
-			ret = afe_smartamp_algo_ctrl((u8*)&data, param_id
-				, TAS_SET_PARAM, sizeof(uint32_t), AFE_SMARTAMP_MODULE_RX);
-			if (ret < 0)
-			{
-				pr_err("[TI-SmartPA:%s] Init error. Exiting ..", __func__);
-				goto end;
-			}
-		}
-		
 		calibration_status = 1;
-	
 		/*Give time for algorithm to converge rdc*/
 		schedule_delayed_work(&p_tas25xx_algo->calib_work,
-				msecs_to_jiffies(CALIB_TIME * 1000));
+				msecs_to_jiffies(200));
 	}
 end:
 	return size;
@@ -1066,4 +1112,4 @@ MODULE_AUTHOR("Texas Instruments Inc.");
 MODULE_DESCRIPTION("TAS25XX Algorithm");
 MODULE_LICENSE("GPL v2");
 
-#endif /*CONFIG_TAS25XX_ALGO*/
+//#endif /*CONFIG_TAS25XX_ALGO*/

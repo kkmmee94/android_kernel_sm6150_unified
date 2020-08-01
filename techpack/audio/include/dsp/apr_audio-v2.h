@@ -2483,7 +2483,6 @@ struct afe_port_data_cmd_rt_proxy_port_read_v2 {
 #define AFE_MODULE_AUDIO_DEV_INTERFACE    0x0001020C
 #define AFE_PORT_SAMPLE_RATE_8K           8000
 #define AFE_PORT_SAMPLE_RATE_16K          16000
-#define AFE_PORT_SAMPLE_RATE_44_1K        44100
 #define AFE_PORT_SAMPLE_RATE_48K          48000
 #define AFE_PORT_SAMPLE_RATE_96K          96000
 #define AFE_PORT_SAMPLE_RATE_176P4K       176400
@@ -5888,15 +5887,15 @@ struct asm_bitrate_param_t {
 } __packed;
 
 struct asm_mtu_param_t {
-       u32 mtu;
+		u32 mtu;
 }__packed;
 
 struct asm_a2dp_suspend_param_t {
-       u32 a2dp_suspend;
+		u32 a2dp_suspend;
 }__packed;
 
 struct asm_enc_format_param_t {
-       u32 enc_format;
+		u32 enc_format;
 }__packed;
 
 struct asm_custom_enc_cfg_t_v2 {
