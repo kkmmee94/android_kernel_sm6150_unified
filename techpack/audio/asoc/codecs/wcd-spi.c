@@ -289,7 +289,7 @@ static int wcd_spi_read_multi(struct spi_device *spi,
 	u32 frame = 0;
 	int ret;
 
-	dev_dbg(&spi->dev,  "%s: addr 0x%x, len = %zd\n",
+	dev_info(&spi->dev,  "%s: addr 0x%x, len = %zd\n",
 		__func__, remote_addr, len);
 
 	frame |= WCD_SPI_FREAD_FRAME_OPCODE;
@@ -356,7 +356,7 @@ static int wcd_spi_write_multi(struct spi_device *spi,
 	u8 *tx_buf = wcd_spi->tx_buf;
 	int xfer_len, ret;
 
-	dev_dbg(&spi->dev, "%s: addr = 0x%x len = %zd\n",
+	dev_info(&spi->dev, "%s: addr = 0x%x len = %zd\n",
 		__func__, remote_addr, len);
 
 	frame |= WCD_SPI_WRITE_FRAME_OPCODE;

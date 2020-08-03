@@ -40,9 +40,6 @@ static inline void msm_mdf_exit(void)
 	return;
 }
 #endif
-#ifdef CONFIG_SEC_SND_ADAPTATION
-int sec_soc_platform_init(void);
-#endif
 #ifdef CONFIG_XT_LOGGING
 int spk_params_init(void);
 void spk_params_exit(void);
@@ -54,6 +51,9 @@ static inline int spk_params_init(void)
 static inline void spk_params_exit(void)
 {
 }
+#endif
+#ifdef CONFIG_SEC_SND_ADAPTATION
+int sec_soc_platform_init(void);
 #endif
 
 void avtimer_exit(void);

@@ -40,13 +40,12 @@
 #define TAS25XX_EFS_CALIB_DATA_R	"/efs/tas25xx/calib_re_r"
 #define TAS25XX_EFS_TEMP_DATA_R		"/efs/tas25xx/amb_temp_r"
 
-#define CALIB_RETRY_COUNT		5
 #define RDC_L					0
 #define TEMP_L					1
 #define RDC_R					2
 #define TEMP_R					3
 #define DEFAULT_AMBIENT_TEMP	25
-#define CALIB_TIME				2
+#define CALIB_TIME				3
 #define VALIDATION_TIME			3
 #define STATUS_NONE				0x00
 #define STATUS_SUCCESS			0x01

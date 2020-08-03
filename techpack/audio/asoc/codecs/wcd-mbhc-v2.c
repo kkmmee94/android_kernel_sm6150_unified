@@ -27,7 +27,6 @@
 #include <linux/firmware.h>
 #include <linux/completion.h>
 #include <linux/soc/qcom/fsa4480-i2c.h>
-#include <linux/wakelock.h>
 #include <sound/soc.h>
 #include <sound/jack.h>
 #include "msm-cdc-pinctrl.h"
@@ -35,15 +34,10 @@
 #include "wcd-mbhc-legacy.h"
 #include "wcd-mbhc-adc.h"
 #include "wcd-mbhc-v2-api.h"
+#include "msm-cdc-pinctrl.h"
 #if defined(CONFIG_SND_SOC_WCD_MBHC_SLOW_DET)
 #include "pdata.h"
 #endif
-#ifdef CONFIG_SND_SOC_IMPED_SENSING
-#include "wcd937x/internal.h"
-#endif
-
-static struct wake_lock det_wake_lock;
-static struct wake_lock btn_wake_lock;
 
 void wcd_mbhc_jack_report(struct wcd_mbhc *mbhc,
 			  struct snd_soc_jack *jack, int status, int mask)
@@ -573,10 +567,15 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 
 	pr_debug("%s: enter insertion %d hph_status %x\n",
 		 __func__, insertion, mbhc->hph_status);
-
-	wake_lock_timeout(&det_wake_lock, (HZ * 5));
 	if (!insertion) {
 		/* Report removal */
+#if defined(CONFIG_SND_SOC_WCD_MBHC_SLOW_DET)
+		if (mbhc->slow_insertion && mbhc->mbhc_cfg->gnd_det_en) {
+			WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_GND_DET_EN, 1);
+			pr_info("%s: slow: Set G_DET to default state\n",
+				__func__);
+		}
+#endif
 		mbhc->hph_status &= ~jack_type;
 		/*
 		 * cancel possibly scheduled btn work and
@@ -620,13 +619,6 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 		hphlocp_off_report(mbhc, SND_JACK_OC_HPHL);
 		mbhc->current_plug = MBHC_PLUG_TYPE_NONE;
 		mbhc->force_linein = false;
-#ifdef CONFIG_SEC_FACTORY
-		/* Insertion debounce set to 256 ms */
-		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_INSREM_DBNC, 9);
-#else
-		/* Insertion debounce set to 512 ms */
-		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_INSREM_DBNC, 11);
-#endif
 	} else {
 		/*
 		 * Report removal of current jack type.
@@ -662,13 +654,7 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 				 __func__, mbhc->hph_status);
 			wcd_mbhc_jack_report(mbhc, &mbhc->headset_jack,
 					    0, WCD_MBHC_JACK_MASK);
-#ifdef CONFIG_SEC_FACTORY
-			/* Insertion debounce set to 256 ms */
-			WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_INSREM_DBNC, 9);
-#else
-			/* Insertion debounce set to 512 ms */
-			WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_INSREM_DBNC, 11);
-#endif
+
 			if (mbhc->hph_status == SND_JACK_LINEOUT) {
 
 				pr_debug("%s: Enable micbias\n", __func__);
@@ -685,7 +671,6 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 						SND_JACK_LINEOUT |
 						SND_JACK_ANC_HEADPHONE |
 						SND_JACK_UNSUPPORTED);
-			mbhc->force_linein = false;
 		}
 
 		if (mbhc->current_plug == MBHC_PLUG_TYPE_HEADSET &&
@@ -721,12 +706,12 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 #if defined(CONFIG_SND_SOC_WCD_MBHC_SLOW_DET)
 			if (!mbhc->slow_insertion)
 				mbhc->mbhc_cb->compute_impedance(mbhc,
-				&mbhc->zl, &mbhc->zr);
+						&mbhc->zl, &mbhc->zr);
 			else
 				mbhc->impedance_offset = mbhc->default_impedance_offset;
 #else
 			mbhc->mbhc_cb->compute_impedance(mbhc,
-			&mbhc->zl, &mbhc->zr);
+					&mbhc->zl, &mbhc->zr);
 #endif
 			WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN,
 						 fsm_en);
@@ -752,6 +737,25 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 			}
 		}
 
+		/* Do not calculate impedance again for lineout
+		 * as during playback pa is on and impedance values
+		 * will not be correct resulting in lineout detected
+		 * as headphone.
+		 */
+		if ((is_pa_on) && mbhc->force_linein == true) {
+			jack_type = SND_JACK_LINEOUT;
+			mbhc->current_plug = MBHC_PLUG_TYPE_HIGH_HPH;
+			if (mbhc->hph_status) {
+				mbhc->hph_status &= ~(SND_JACK_HEADSET |
+						SND_JACK_LINEOUT |
+						SND_JACK_UNSUPPORTED);
+				wcd_mbhc_jack_report(mbhc,
+						&mbhc->headset_jack,
+						mbhc->hph_status,
+						WCD_MBHC_JACK_MASK);
+			}
+		}
+
 		mbhc->hph_status |= jack_type;
 
 		pr_debug("%s: Reporting insertion %d(%x)\n", __func__,
@@ -760,8 +764,6 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 				    (mbhc->hph_status | SND_JACK_MECHANICAL),
 				    WCD_MBHC_JACK_MASK);
 		wcd_mbhc_clr_and_turnon_hph_padac(mbhc);
-		/* Insertion debounce set to 96 */
-		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_INSREM_DBNC, 6);
 	}
 	pr_debug("%s: leave hph_status %x\n", __func__, mbhc->hph_status);
 }
@@ -1128,7 +1130,6 @@ int wcd_mbhc_get_button_mask(struct wcd_mbhc *mbhc)
 	}
 
 	pr_info("%s: button %d\n", __func__, btn);
-
 	return mask;
 }
 EXPORT_SYMBOL(wcd_mbhc_get_button_mask);
@@ -1208,7 +1209,6 @@ static irqreturn_t wcd_mbhc_btn_press_handler(int irq, void *data)
 			 __func__);
 		goto done;
 	}
-	wake_lock_timeout(&btn_wake_lock, (HZ * 5));
 	mask = wcd_mbhc_get_button_mask(mbhc);
 	if (mask == SND_JACK_BTN_0)
 		mbhc->btn_press_intr = true;
@@ -1432,13 +1432,8 @@ static int wcd_mbhc_initialise(struct wcd_mbhc *mbhc)
 		/* Insertion debounce set to 48ms */
 		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_INSREM_DBNC, 4);
 	} else {
-#ifdef CONFIG_SEC_FACTORY
-		/* Insertion debounce set to 256 ms */
+		/* Insertion debounce set to 256ms */
 		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_INSREM_DBNC, 9);
-#else
-		/* Insertion debounce set to 512 ms */
-		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_INSREM_DBNC, 11);
-#endif
 	}
 
 	/* Button Debounce set to 8ms */
@@ -1456,6 +1451,21 @@ static int wcd_mbhc_initialise(struct wcd_mbhc *mbhc)
 		else
 			mbhc->mbhc_cb->clk_setup(codec, true);
 	}
+
+#ifndef CONFIG_SEC_FACTORY
+	/* Samsung external cable ADC detection flag check */
+	if (of_find_property(codec->component.card->dev->of_node, "detect-extn-cable", NULL))
+		mbhc->mbhc_cfg->detect_extn_cable = true;
+	pr_debug("%s: external cable support : %s\n", __func__,
+		mbhc->mbhc_cfg->detect_extn_cable ? "true" : "false");
+#endif
+
+	/* Noise filter type control */
+	if (of_find_property(codec->component.card->dev->of_node,
+		"qcom,noise-filter-cfilt-ref", NULL))
+		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_NOISE_FILT_CTRL, 1);
+	else
+		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_NOISE_FILT_CTRL, 0);
 
 	/* program HS_VREF value */
 	wcd_program_hs_vref(mbhc);
@@ -1760,9 +1770,8 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_codec *codec,
 	const char *gnd_switch = "qcom,msm-mbhc-gnd-swh";
 	const char *hs_thre = "qcom,msm-mbhc-hs-mic-max-threshold-mv";
 	const char *hph_thre = "qcom,msm-mbhc-hs-mic-min-threshold-mv";
-#ifdef CONFIG_SND_SOC_IMPED_SENSING
-	struct wcd937x_priv *wcd937x = snd_soc_codec_get_drvdata(codec);
-	struct wcd937x_pdata *pdata = dev_get_platdata(wcd937x->dev);
+#if defined(CONFIG_SND_SOC_WCD_MBHC_SLOW_DET)
+	struct wcd9xxx_pdata *pdata = dev_get_platdata(codec->dev->parent);
 #endif
 
 	pr_debug("%s: enter\n", __func__);
@@ -1825,13 +1834,10 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_codec *codec,
 	mbhc->hph_type = WCD_MBHC_HPH_NONE;
 	mbhc->wcd_mbhc_regs = wcd_mbhc_regs;
 	mbhc->swap_thr = GND_MIC_SWAP_THRESHOLD;
+	mbhc->impedance_offset = 0;
 	mbhc->pullup_enable = false;
 #if defined(CONFIG_SND_SOC_WCD_MBHC_SLOW_DET)
 	mbhc->slow_insertion = false;
-	mbhc->default_impedance_offset =
-		pdata->imp_table[SND_JACK_HEADPHONE].gain;
-#endif
-#ifdef CONFIG_SND_SOC_IMPED_SENSING
 	mbhc->default_impedance_offset =
 		pdata->imp_table[SND_JACK_HEADSET].gain;
 #endif
@@ -2001,9 +2007,6 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_codec *codec,
 		goto err_hphr_ocp_irq;
 	}
 
-	wake_lock_init(&det_wake_lock, WAKE_LOCK_SUSPEND, "mbhc_det_wake_lock");
-	wake_lock_init(&btn_wake_lock, WAKE_LOCK_SUSPEND, "mbhc_btn_wake_lock");
-
 	mbhc->deinit_in_progress = false;
 	pr_debug("%s: leave ret %d\n", __func__, ret);
 	return ret;
@@ -2027,8 +2030,6 @@ err_mbhc_sw_irq:
 		mbhc->mbhc_cb->register_notifier(mbhc, &mbhc->nblock, false);
 	mutex_destroy(&mbhc->codec_resource_lock);
 err:
-	wake_lock_destroy(&det_wake_lock);
-	wake_lock_destroy(&btn_wake_lock);
 	pr_debug("%s: leave ret %d\n", __func__, ret);
 	return ret;
 }
@@ -2058,9 +2059,6 @@ void wcd_mbhc_deinit(struct wcd_mbhc *mbhc)
 	mutex_destroy(&mbhc->codec_resource_lock);
 	mutex_destroy(&mbhc->hphl_pa_lock);
 	mutex_destroy(&mbhc->hphr_pa_lock);
-
-	wake_lock_destroy(&det_wake_lock);
-	wake_lock_destroy(&btn_wake_lock);
 }
 EXPORT_SYMBOL(wcd_mbhc_deinit);
 

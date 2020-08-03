@@ -1,4 +1,4 @@
-/* Copyright (c) 2014-2018, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2014-2019, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -222,8 +222,7 @@ enum wcd_mbhc_register_function {
 	WCD_MBHC_ADC_MODE,
 	WCD_MBHC_DETECTION_DONE,
 	WCD_MBHC_ELECT_ISRC_EN,
-	WCD_MBHC_EN_SURGE_PROTECTION_HPHL,
-	WCD_MBHC_EN_SURGE_PROTECTION_HPHR,
+	WCD_MBHC_NOISE_FILT_CTRL,
 	WCD_MBHC_REG_FUNC_MAX,
 };
 
@@ -540,6 +539,7 @@ struct wcd_mbhc {
 	bool gnd_swh; /*track GND switch NC / NO */
 	u32 hs_thr;
 	u32 hph_thr;
+	u32 micb_mv;
 	u32 swap_thr;
 	u32 moist_vref;
 	u32 moist_iref;
@@ -597,18 +597,17 @@ struct wcd_mbhc {
 
 	unsigned long intr_status;
 	bool is_hph_ocp_pending;
-#if defined(CONFIG_SND_SOC_WCD_MBHC_SLOW_DET)
-	bool slow_insertion;
-#endif
+
 	struct wcd_mbhc_fn *mbhc_fn;
 	bool force_linein;
 	struct device_node *fsa_np;
 	struct notifier_block fsa_nb;
 
 	bool pullup_enable;
-#ifdef CONFIG_SND_SOC_IMPED_SENSING
-	int default_impedance_offset;
 	int impedance_offset;
+#if defined(CONFIG_SND_SOC_WCD_MBHC_SLOW_DET)
+	int default_impedance_offset;
+	bool slow_insertion;
 #endif
 };
 

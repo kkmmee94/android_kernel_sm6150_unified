@@ -111,14 +111,21 @@ ifdef CONFIG_SND_SOC_SM8150
 	MACHINE_OBJS += machine_815x_init.o
 endif
 
-# for SM6150 sound card driver
-ifdef CONFIG_SND_SOC_SM6150
-	MACHINE_OBJS += sm6150.o
+# for SM8150_CS48L32 sound card driver
+ifdef CONFIG_SND_SOC_SM8150_CS48L32
+	MACHINE_OBJS += sa8155.o
+	MACHINE_OBJS += sm8150-cs48l32.o
+	MACHINE_OBJS += machine_815x_init.o
 endif
 
 # for SAMSUNG AUDIO
 ifdef CONFIG_SND_SOC_SAMSUNG_AUDIO
 	MACHINE_OBJS += sec_wcd_sysfs_cb.o
+endif
+
+# for SM6150 sound card driver
+ifdef CONFIG_SND_SOC_SM6150
+	MACHINE_OBJS += sm6150.o
 endif
 
 # for qcs405 sound card driver
@@ -222,6 +229,9 @@ obj-$(CONFIG_SND_SOC_MACHINE_SDM845) += machine_dlkm.o
 machine_dlkm-y := $(MACHINE_OBJS)
 
 obj-$(CONFIG_SND_SOC_SM8150) += machine_dlkm.o
+machine_dlkm-y := $(MACHINE_OBJS)
+
+obj-$(CONFIG_SND_SOC_SM8150_CS48L32) += machine_dlkm.o
 machine_dlkm-y := $(MACHINE_OBJS)
 
 obj-$(CONFIG_SND_SOC_SM6150) += machine_dlkm.o

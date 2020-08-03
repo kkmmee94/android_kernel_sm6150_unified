@@ -24,20 +24,18 @@
 #include <sound/samsung/sec_audio_sysfs.h>
 #include "sec_wcd_sysfs_cb.h"
 #include "codecs/wcd-mbhc-v2.h"
-#include "codecs/wcd937x/wcd937x-mbhc.h"
-#include "codecs/wcd937x/internal.h"
+#include "codecs/wcd934x/wcd934x.h"
+#include "codecs/wcd934x/wcd934x-mbhc.h"
 
 static struct snd_soc_codec *wcd_codec;
-#ifdef CONFIG_SND_SOC_WCD_DSP_MGR
 static int mad_mic_bias;
-#endif
 
 #ifndef CONFIG_SEC_SND_USB_HEADSET_ONLY
 static int get_jack_status(void)
 {
 	struct snd_soc_codec *codec = wcd_codec;
-	struct wcd937x_mbhc *wcd937x_mbhc = wcd937x_soc_get_mbhc(codec);
-	struct wcd_mbhc *mbhc = &wcd937x_mbhc->wcd_mbhc;
+	struct wcd934x_mbhc *wcd934x_mbhc = tavil_soc_get_mbhc(codec);
+	struct wcd_mbhc *mbhc = &wcd934x_mbhc->wcd_mbhc;
 	int value = 0;
 
 	if ((mbhc->hph_status == SND_JACK_HEADSET) ||
@@ -52,8 +50,8 @@ static int get_jack_status(void)
 static int get_key_status(void)
 {
 	struct snd_soc_codec *codec = wcd_codec;
-	struct wcd937x_mbhc *wcd937x_mbhc = wcd937x_soc_get_mbhc(codec);
-	struct wcd_mbhc *mbhc = &wcd937x_mbhc->wcd_mbhc;
+	struct wcd934x_mbhc *wcd934x_mbhc = tavil_soc_get_mbhc(codec);
+	struct wcd_mbhc *mbhc = &wcd934x_mbhc->wcd_mbhc;
 	int value = -1;
 
 	if (mbhc->buttons_pressed)
@@ -65,7 +63,6 @@ static int get_key_status(void)
 }
 #endif
 
-#ifdef CONFIG_SND_SOC_WCD_DSP_MGR
 static int get_wdsp_status(void)
 {
 	struct snd_soc_codec *codec = wcd_codec;
@@ -99,7 +96,6 @@ static void set_mad_mic_bias_status(int onoff)
 	
 	dev_info(codec->dev, "%s: onoff %d mad_mic_bias 0x%x\n", __func__, onoff, mad_mic_bias);
 }
-#endif
 
 void register_mbhc_jack_cb(struct snd_soc_codec *codec)
 {
@@ -111,11 +107,8 @@ void register_mbhc_jack_cb(struct snd_soc_codec *codec)
 	audio_register_mic_adc_cb(get_key_status);
 #endif
 #endif
-#ifdef CONFIG_SND_SOC_WCD_DSP_MGR
 	audio_register_wdsp_state_cb(get_wdsp_status);
 	audio_register_mad_mic_state_cb(set_mad_mic_bias_status);
-#endif
 }
 EXPORT_SYMBOL_GPL(register_mbhc_jack_cb);
-
 

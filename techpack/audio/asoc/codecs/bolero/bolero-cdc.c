@@ -154,13 +154,6 @@ static int bolero_cdc_update_wcd_event(void *handle, u16 event, u32 data)
 			priv->macro_params[RX_MACRO].event_handler(priv->codec,
 				BOLERO_MACRO_EVT_IMPED_FALSE, data);
 		break;
-#ifdef CONFIG_SND_SOC_IMPED_SENSING
-	case SEC_WCD_BOLERO_EVT_IMPED_TRUE:
-		if (priv->macro_params[RX_MACRO].event_handler)
-			priv->macro_params[RX_MACRO].event_handler(priv->codec,
-				SEC_BOLERO_MACRO_EVT_IMPED_TRUE, data);
-		break;
-#endif
 	default:
 		dev_err(priv->dev, "%s: Invalid event %d trigger from wcd\n",
 			__func__, event);
@@ -528,6 +521,29 @@ err:
 	return ret;
 }
 EXPORT_SYMBOL(bolero_request_clock);
+
+void bolero_wsa_pa_on(struct device *dev)
+{
+	struct bolero_priv *priv;
+
+	if (!dev) {
+		pr_err("%s: dev is null\n", __func__);
+		return;
+	}
+	if (!bolero_is_valid_macro_dev(dev)) {
+		dev_err(dev, "%s: not a valid child dev\n",
+			__func__);
+		return;
+	}
+	priv = dev_get_drvdata(dev->parent);
+	if (!priv) {
+		dev_err(dev, "%s: priv is null\n", __func__);
+		return;
+	}
+
+	bolero_cdc_notifier_call(priv, BOLERO_WCD_EVT_PA_ON_POST_FSCLK);
+}
+EXPORT_SYMBOL(bolero_wsa_pa_on);
 
 static ssize_t bolero_version_read(struct snd_info_entry *entry,
 				   void *file_private_data,

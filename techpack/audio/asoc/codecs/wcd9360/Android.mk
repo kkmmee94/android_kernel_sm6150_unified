@@ -36,6 +36,7 @@ KBUILD_OPTIONS += BOARD_PLATFORM=$(TARGET_BOARD_PLATFORM)
 KBUILD_OPTIONS += $(AUDIO_SELECT)
 
 ###########################################################
+ifdef CONFIG_SND_SOC_WCD9360
 include $(CLEAR_VARS)
 LOCAL_MODULE              := $(AUDIO_CHIPSET)_wcd9360.ko
 LOCAL_MODULE_KBUILD_NAME  := wcd9360_dlkm.ko
@@ -43,6 +44,7 @@ LOCAL_MODULE_TAGS         := optional
 LOCAL_MODULE_DEBUG_ENABLE := true
 LOCAL_MODULE_PATH         := $(KERNEL_MODULES_OUT)
 include $(DLKM_DIR)/AndroidKernelModule.mk
+endif
 ###########################################################
 ###########################################################
 

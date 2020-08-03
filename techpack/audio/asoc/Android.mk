@@ -24,7 +24,7 @@ AUDIO_SELECT  := CONFIG_SND_SOC_SM6150=m
 endif
 
 ifeq ($(call is-board-platform,$(TRINKET)),true)
-TARGET := $(TRINKET)
+TARGET := trinket
 AUDIO_SELECT  := CONFIG_SND_SOC_SM6150=m
 endif
 
