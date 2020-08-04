@@ -50,7 +50,6 @@ enum {
 	ALLOW_BUCK_DISABLE,
 	HPH_COMP_DELAY,
 	HPH_PA_DELAY,
-	AMIC2_BCS_ENABLE,
 };
 
 static const DECLARE_TLV_DB_SCALE(line_gain, 0, 7, 1);
@@ -1203,21 +1202,10 @@ static int wcd937x_codec_enable_adc(struct snd_soc_dapm_widget *w,
 				    0x08, 0x08);
 		snd_soc_update_bits(codec, WCD937X_DIGITAL_CDC_ANA_CLK_CTL,
 				    0x10, 0x10);
-		/* Enable BCS for Headset mic */
-		if (w->shift == 1 && !(snd_soc_read(codec,
-			WCD937X_TX_NEW_TX_CH2_SEL) & 0x80)) {
-			wcd937x_tx_connect_port(codec, MBHC, true);
-			set_bit(AMIC2_BCS_ENABLE, &wcd937x->status_mask);
-		}
 		wcd937x_tx_connect_port(codec, ADC1 + (w->shift), true);
 		break;
 	case SND_SOC_DAPM_POST_PMD:
 		wcd937x_tx_connect_port(codec, ADC1 + (w->shift), false);
-		if (w->shift == 1 &&
-			test_bit(AMIC2_BCS_ENABLE, &wcd937x->status_mask)) {
-			wcd937x_tx_connect_port(codec, MBHC, false);
-			clear_bit(AMIC2_BCS_ENABLE, &wcd937x->status_mask);
-		}
 		snd_soc_update_bits(codec, WCD937X_DIGITAL_CDC_ANA_CLK_CTL,
 				    0x08, 0x00);
 		break;
@@ -1242,18 +1230,15 @@ static int wcd937x_enable_req(struct snd_soc_dapm_widget *w,
 		snd_soc_update_bits(codec, WCD937X_DIGITAL_CDC_REQ_CTL, 0x01,
 				    0x00);
 		snd_soc_update_bits(codec, WCD937X_ANA_TX_CH2, 0x40, 0x40);
-		snd_soc_update_bits(codec, WCD937X_ANA_TX_CH3_HPF, 0x40, 0x40);
 		snd_soc_update_bits(codec, WCD937X_DIGITAL_CDC_DIG_CLK_CTL,
-				    0x70, 0x70);
+				    0x30, 0x30);
 		snd_soc_update_bits(codec, WCD937X_ANA_TX_CH1, 0x80, 0x80);
 		snd_soc_update_bits(codec, WCD937X_ANA_TX_CH2, 0x40, 0x00);
 		snd_soc_update_bits(codec, WCD937X_ANA_TX_CH2, 0x80, 0x80);
-		snd_soc_update_bits(codec, WCD937X_ANA_TX_CH3, 0x80, 0x80);
 		break;
 	case SND_SOC_DAPM_POST_PMD:
 		snd_soc_update_bits(codec, WCD937X_ANA_TX_CH1, 0x80, 0x00);
 		snd_soc_update_bits(codec, WCD937X_ANA_TX_CH2, 0x80, 0x00);
-		snd_soc_update_bits(codec, WCD937X_ANA_TX_CH3, 0x80, 0x00);
 		snd_soc_update_bits(codec, WCD937X_DIGITAL_CDC_DIG_CLK_CTL,
 				    0x10, 0x00);
 		mutex_lock(&wcd937x->ana_tx_clk_lock);
@@ -2025,6 +2010,11 @@ static const struct snd_soc_dapm_route wcd937x_audio_map[] = {
 	{"EAR_RDAC", "Switch", "RDAC3"},
 	{"EAR PGA", NULL, "EAR_RDAC"},
 	{"EAR", NULL, "EAR PGA"},
+
+	{"EAR", NULL, "CLS_H_PORT"},
+	{"HPHR", NULL, "CLS_H_PORT"},
+	{"HPHL", NULL, "CLS_H_PORT"},
+	{"AUX", NULL, "CLS_H_PORT"},
 };
 
 static const struct snd_soc_dapm_route wcd9375_audio_map[] = {
@@ -2492,6 +2482,21 @@ static int wcd937x_reset_low(struct device *dev)
 struct wcd937x_pdata *wcd937x_populate_dt_data(struct device *dev)
 {
 	struct wcd937x_pdata *pdata = NULL;
+#ifdef CONFIG_SND_SOC_IMPED_SENSING
+	int rc = 0;
+	int i;
+	struct of_phandle_args imp_list;
+	struct wcd937x_gain_table default_table[MAX_IMPEDANCE_TABLE] = {
+		{    0,       0, 6},
+		{    1,      13, 0},
+		{   14,      25, 3},
+		{   26,      42, 4},
+		{   43,     100, 5},
+		{  101,     200, 7},
+		{  201,    1000, 8},
+		{ 1001, INT_MAX, 6},
+	};
+#endif
 
 	pdata = kzalloc(sizeof(struct wcd937x_pdata),
 				GFP_KERNEL);
@@ -2520,6 +2525,26 @@ struct wcd937x_pdata *wcd937x_populate_dt_data(struct device *dev)
 	pdata->rx_slave = of_parse_phandle(dev->of_node, "qcom,rx-slave", 0);
 	pdata->tx_slave = of_parse_phandle(dev->of_node, "qcom,tx-slave", 0);
 	wcd937x_dt_parse_micbias_info(dev, &pdata->micbias);
+
+#ifdef CONFIG_SND_SOC_IMPED_SENSING
+	for (i = 0; i < ARRAY_SIZE(pdata->imp_table); i++) {
+		rc = of_parse_phandle_with_args(dev->of_node,
+			"imp-table", "#list-imp-cells", i, &imp_list);
+		if (rc < 0) {
+			pdata->imp_table[i].min = default_table[i].min;
+			pdata->imp_table[i].max = default_table[i].max;
+			pdata->imp_table[i].gain = default_table[i].gain;
+		} else {
+			pdata->imp_table[i].min = imp_list.args[0];
+			pdata->imp_table[i].max = imp_list.args[1];
+			pdata->imp_table[i].gain = imp_list.args[2];
+		}
+		dev_info(dev, "impedance gain table %d, %d, %d\n",
+			pdata->imp_table[i].min,
+			pdata->imp_table[i].max,
+			pdata->imp_table[i].gain);
+	}
+#endif
 
 	return pdata;
 }

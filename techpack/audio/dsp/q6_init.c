@@ -61,7 +61,7 @@ static void __exit audio_q6_exit(void)
 	voice_mhi_exit();
 }
 
-module_init(audio_q6_init);
+fs_initcall(audio_q6_init);
 module_exit(audio_q6_exit);
 MODULE_DESCRIPTION("Q6 module");
 MODULE_LICENSE("GPL v2");
