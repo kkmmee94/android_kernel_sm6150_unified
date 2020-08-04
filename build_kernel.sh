@@ -1,19 +1,28 @@
 #!/bin/bash
 
-export CROSS_COMPILE=$(pwd)/../PLATFORM/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+set -e
 
-mkdir out
+export CROSS_COMPILE=/home/firemax13/a71_kernel/firemax13/toolchain/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+export ARCH=arm64
 
-BUILD_CROSS_COMPILE=$(pwd)/../PLATFORM/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
-KERNEL_LLVM_BIN=$(pwd)/toolchain/llvm-arm-toolchain-ship/6.0/bin/clang
+if [ ! -d out ]; then
+	mkdir out
+fi
+
+BUILD_CROSS_COMPILE=/home/firemax13/a71_kernel/firemax13/toolchain/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+KERNEL_LLVM_BIN=/home/firemax13/a71_kernel/firemax13/toolchain/clang/bin/clang
 CLANG_TRIPLE=aarch64-linux-gnu-
-KERNEL_MAKE_ENV="DTC_EXT=$(pwd)/tools/dtc CONFIG_BUILD_ARM64_DT_OVERLAY=y"
+KERNEL_MAKE_ENV="CONFIG_BUILD_ARM64_DT_OVERLAY=y"
 
-#export ARCH=arm64
-#make -C $(pwd) O=$(pwd)/out KCFLAGS=-mno-android sm6150_sec_defconfig
-#make -j64 -C $(pwd) O=$(pwd)/out KCFLAGS=-mno-android
+make -C $(pwd) O=$(pwd)/out ARCH=arm64 CROSS_COMPILE=$BUILD_CROSS_COMPILE REAL_CC=$KERNEL_LLVM_BIN CLANG_TRIPLE=$CLANG_TRIPLE sm7150_sec_defconfig
+make -j64 -C $(pwd) O=$(pwd)/out ARCH=arm64 CROSS_COMPILE=$BUILD_CROSS_COMPILE REAL_CC=$KERNEL_LLVM_BIN CLANG_TRIPLE=$CLANG_TRIPLE
 
-make -C $(pwd) O=$(pwd)/out $KERNEL_MAKE_ENV ARCH=arm64 CROSS_COMPILE=$BUILD_CROSS_COMPILE REAL_CC=$KERNEL_LLVM_BIN CLANG_TRIPLE=$CLANG_TRIPLE sm7150_sec_defconfig
-make -j64 -C $(pwd) O=$(pwd)/out $KERNEL_MAKE_ENV ARCH=arm64 CROSS_COMPILE=$BUILD_CROSS_COMPILE REAL_CC=$KERNEL_LLVM_BIN CLANG_TRIPLE=$CLANG_TRIPLE
+tools/mkdtimg create out/arch/arm64/boot/dtbo.img --page_size=4096 $(find out -name "*.dtbo")
 
-cp out/arch/arm64/boot/Image $(pwd)/arch/arm64/boot/Image
+# More commands here
+
+# error_copy_script
+# cp out/arch/arm64/boot/Image $(pwd)/arch/arm64/boot/Image
+# This will cause some errors after the last make command is done and the Image is still not produced.
+# No need to copy Image into the other location since it is not useful, and it will duplicate and cause such an error when compiling the kernel again without cleaning the out/Image loc after some modifications.
+# Disabled till stable script is found.
