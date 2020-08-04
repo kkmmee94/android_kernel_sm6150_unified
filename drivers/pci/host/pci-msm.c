@@ -3629,6 +3629,23 @@ static int msm_pcie_get_resources(struct msm_pcie_dev_t *dev,
 		ret = 0;
 	}
 
+	of_get_property(pdev->dev.of_node, "qcom,bw-scale", &size);
+	if (size) {
+		dev->bw_scale = devm_kzalloc(&pdev->dev, size, GFP_KERNEL);
+		if (!dev->bw_scale) {
+			ret = -ENOMEM;
+			goto out;
+		}
+
+		of_property_read_u32_array(pdev->dev.of_node, "qcom,bw-scale",
+				(u32 *)dev->bw_scale, size / sizeof(u32));
+
+		dev->bw_gen_max = size / sizeof(*dev->bw_scale);
+	} else {
+		PCIE_DBG(dev, "RC%d: bandwidth scaling is not supported\n",
+			dev->rc_idx);
+	}
+
 	of_get_property(pdev->dev.of_node, "qcom,phy-sequence", &size);
 	if (size) {
 		dev->phy_sequence = (struct msm_pcie_phy_info_t *)
