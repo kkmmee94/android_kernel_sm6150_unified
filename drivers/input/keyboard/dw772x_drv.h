@@ -22,10 +22,8 @@ int dw772x_hall_out(void);
 
 static int dw772x_magnet_cal_set(void);
 static int dw772x_device_init(struct i2c_client *client);
-#if 0 // disable interrupt routine
 static int irq_rtp_exit(void);
 static int irq_rtp_init(void);
-#endif
 
 static int dw772x_seq_read(u32 addr, u32 ram_addr, u32 ram_bit, u8* data, u32 size);
 static int dw772x_seq_write(u32 addr, u32 ram_addr, u32 ram_bit, u8* data, u32 size);

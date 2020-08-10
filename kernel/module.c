@@ -1210,10 +1210,8 @@ static ssize_t store_uevent(struct module_attribute *mattr,
 			    struct module_kobject *mk,
 			    const char *buffer, size_t count)
 {
-	int rc;
-
-	rc = kobject_synth_uevent(&mk->kobj, buffer, count);
-	return rc ? rc : count;
+	kobject_synth_uevent(&mk->kobj, buffer, count);
+	return count;
 }
 
 struct module_attribute module_uevent =
@@ -2795,8 +2793,6 @@ static int module_sig_check(struct load_info *info, int flags)
 	int err = -ENOKEY;
 	const unsigned long markerlen = sizeof(MODULE_SIG_STRING) - 1;
 	const void *mod = info->hdr;
-
-    return 0;
 
 	/*
 	 * Require flags == 0, as a module with version information

@@ -280,6 +280,7 @@ static ssize_t mode_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	struct samsung_display_driver_data *vdd = dev_get_drvdata(dev);
+	int buffer_pos = 0;
 	struct mdnie_lite_tun_type *tune = NULL;
 
 	if (!vdd)
@@ -288,7 +289,12 @@ static ssize_t mode_show(struct device *dev,
 	vdd = ss_check_hall_ic_get_vdd(vdd);
 	tune = vdd->mdnie.mdnie_tune_state_dsi;
 
-	return snprintf(buf, 256, "%d\n", tune->mdnie_mode);
+	buffer_pos += snprintf(buf + buffer_pos, 256, "Current Mode: %s\n",
+			mdnie_mode_name[tune->mdnie_mode]);
+
+	DPRINT("%s\n", buf);
+
+	return buffer_pos;
 }
 
 static ssize_t mode_store(struct device *dev,
@@ -334,6 +340,7 @@ static ssize_t scenario_show(struct device *dev,
 					 char *buf)
 {
 	struct samsung_display_driver_data *vdd = dev_get_drvdata(dev);
+	int buffer_pos = 0;
 	struct mdnie_lite_tun_type *tune = NULL;
 
 	if (!vdd)
@@ -342,7 +349,14 @@ static ssize_t scenario_show(struct device *dev,
 	vdd = ss_check_hall_ic_get_vdd(vdd);
 	tune = vdd->mdnie.mdnie_tune_state_dsi;
 
-	return snprintf(buf, 256, "%d\n", tune->mdnie_app);
+	buffer_pos += snprintf(buf, 256, "Current APP : ");
+
+	buffer_pos += snprintf(buf + buffer_pos, 256, "Current APP: %s\n",
+			mdnie_app_name[tune->mdnie_app]);
+
+	DPRINT("%s \n", buf);
+
+	return buffer_pos;
 }
 
 /* app_id : App give self_app_id to mdnie driver.
@@ -368,11 +382,6 @@ static int fake_id(int app_id)
 	return ret_id;
 }
 
-static ssize_t mode_max_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	return snprintf(buf, PAGE_SIZE, "%u\n", MAX_MODE);
-}
 
 static ssize_t scenario_store(struct device *dev,
 					  struct device_attribute *attr,
@@ -415,6 +424,7 @@ static ssize_t outdoor_show(struct device *dev,
 					      char *buf)
 {
 	struct samsung_display_driver_data *vdd = dev_get_drvdata(dev);
+	int buffer_pos = 0;
 	struct mdnie_lite_tun_type *tune = NULL;
 
 	if (!vdd)
@@ -423,7 +433,12 @@ static ssize_t outdoor_show(struct device *dev,
 	vdd = ss_check_hall_ic_get_vdd(vdd);
 	tune = vdd->mdnie.mdnie_tune_state_dsi;
 
-	return snprintf(buf, 256, "%d\n", tune->outdoor);
+	buffer_pos += snprintf(buf + buffer_pos, 256, "Current outdoor Mode: %s\n",
+			outdoor_name[tune->outdoor]);
+
+	DPRINT("%s\n", buf);
+
+	return buffer_pos;
 }
 
 static ssize_t outdoor_store(struct device *dev,
@@ -465,6 +480,7 @@ static ssize_t bypass_show(struct device *dev,
 					 char *buf)
 {
 	struct samsung_display_driver_data *vdd = dev_get_drvdata(dev);
+	int buffer_pos = 0;
 	struct mdnie_lite_tun_type *tune = NULL;
 
 	if (!vdd)
@@ -473,7 +489,11 @@ static ssize_t bypass_show(struct device *dev,
 	vdd = ss_check_hall_ic_get_vdd(vdd);
 	tune = vdd->mdnie.mdnie_tune_state_dsi;
 
-	return snprintf(buf, 256, "%d\n", tune->mdnie_bypass);
+	buffer_pos += snprintf(buf + buffer_pos, 256, "Current MDNIE bypass:  %s\n",
+			tune->mdnie_bypass ? "ENABLE" : "DISABLE");
+	DPRINT("%s\n", buf);
+
+	return buffer_pos;
 }
 
 static ssize_t bypass_store(struct device *dev,
@@ -992,6 +1012,7 @@ static ssize_t hdr_show(struct device *dev,
 					 char *buf)
 {
 	struct samsung_display_driver_data *vdd = dev_get_drvdata(dev);
+	int buffer_pos = 0;
 	struct mdnie_lite_tun_type *tune = NULL;
 
 	if (!vdd)
@@ -1000,7 +1021,12 @@ static ssize_t hdr_show(struct device *dev,
 	vdd = ss_check_hall_ic_get_vdd(vdd);
 	tune = vdd->mdnie.mdnie_tune_state_dsi;
 
-	return snprintf(buf, 256, "%d\n", tune->hdr);
+	buffer_pos += snprintf(buf + buffer_pos, 256, "Current HDR SETTING: %s\n",
+			mdnie_hdr_name[tune->hdr]);
+
+	DPRINT("%s\n", buf);
+
+	return buffer_pos;
 }
 
 static ssize_t hdr_store(struct device *dev,
@@ -1176,6 +1202,7 @@ static ssize_t cabc_show(struct device *dev,
 					 char *buf)
 {
 	struct samsung_display_driver_data *vdd = dev_get_drvdata(dev);
+	int buffer_pos = 0;
 	struct mdnie_lite_tun_type *tune = NULL;
 
 	if (!vdd)
@@ -1184,7 +1211,12 @@ static ssize_t cabc_show(struct device *dev,
 	vdd = ss_check_hall_ic_get_vdd(vdd);
 	tune = vdd->mdnie.mdnie_tune_state_dsi;
 
-	return snprintf(buf, 256, "%d\n", tune->cabc_bypass);
+	buffer_pos += snprintf(buf + buffer_pos, 256, "Current CABC bypass: %s\n",
+			tune->cabc_bypass ? "ENABLE" : "DISABLE");
+
+	DPRINT("%s\n", buf);
+
+	return buffer_pos;
 }
 
 static ssize_t cabc_store(struct device *dev,
@@ -1279,7 +1311,6 @@ static ssize_t hmt_color_temperature_store(struct device *dev,
 }
 
 static DEVICE_ATTR(mode, 0664, mode_show, mode_store);
-static DEVICE_ATTR(mode_max, 0444, mode_max_show, NULL);
 static DEVICE_ATTR(scenario, 0664, scenario_show, scenario_store);
 static DEVICE_ATTR(outdoor, 0664, outdoor_show, outdoor_store);
 static DEVICE_ATTR(bypass, 0664, bypass_show, bypass_store);
@@ -1438,10 +1469,6 @@ void create_tcon_mdnie_node(struct samsung_display_driver_data *vdd)
 	/* MODE */
 	if (device_create_file(tune_mdnie_dev, &dev_attr_mode) < 0)
 		DPRINT("Failed to create device file(%s)!\n", dev_attr_mode.attr.name);
-
-	/* MODE MAX */
-	if (device_create_file(tune_mdnie_dev, &dev_attr_mode_max) < 0)
-		DPRINT("Failed to create device file(%s)!\n", dev_attr_mode_max.attr.name);
 
 	/* OUTDOOR */
 	if (device_create_file(tune_mdnie_dev, &dev_attr_outdoor) < 0)

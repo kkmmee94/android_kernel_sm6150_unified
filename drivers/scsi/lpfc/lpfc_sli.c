@@ -13941,8 +13941,7 @@ lpfc_sli4_queue_alloc(struct lpfc_hba *phba, uint32_t entry_size,
 			hw_page_size))/hw_page_size;
 
 	/* If needed, Adjust page count to match the max the adapter supports */
-	if (phba->sli4_hba.pc_sli4_params.wqpcnt &&
-	    (queue->page_count > phba->sli4_hba.pc_sli4_params.wqpcnt))
+	if (queue->page_count > phba->sli4_hba.pc_sli4_params.wqpcnt)
 		queue->page_count = phba->sli4_hba.pc_sli4_params.wqpcnt;
 
 	INIT_LIST_HEAD(&queue->list);

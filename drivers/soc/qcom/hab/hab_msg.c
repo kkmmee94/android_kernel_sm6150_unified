@@ -1,4 +1,4 @@
-/* Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2016-2018, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -15,12 +15,10 @@
 static int hab_rx_queue_empty(struct virtual_channel *vchan)
 {
 	int ret;
-	int irqs_disabled = irqs_disabled();
 
-	hab_spin_lock(&vchan->rx_lock, irqs_disabled);
+	spin_lock_bh(&vchan->rx_lock);
 	ret = list_empty(&vchan->rx_list);
-	hab_spin_unlock(&vchan->rx_lock, irqs_disabled);
-
+	spin_unlock_bh(&vchan->rx_lock);
 	return ret;
 }
 
@@ -58,7 +56,6 @@ hab_msg_dequeue(struct virtual_channel *vchan, struct hab_message **msg,
 	int ret = 0;
 	int wait = !(flags & HABMM_SOCKET_RECV_FLAGS_NON_BLOCKING);
 	int interruptible = !(flags & HABMM_SOCKET_RECV_FLAGS_UNINTERRUPTIBLE);
-	int irqs_disabled = irqs_disabled();
 
 	if (wait) {
 		if (hab_rx_queue_empty(vchan)) {
@@ -78,7 +75,7 @@ hab_msg_dequeue(struct virtual_channel *vchan, struct hab_message **msg,
 	 * and need empty check again in case the list is empty now due to
 	 * dequeue by other threads
 	 */
-	hab_spin_lock(&vchan->rx_lock, irqs_disabled);
+	spin_lock_bh(&vchan->rx_lock);
 
 	if ((!ret || (ret == -ERESTARTSYS)) && !list_empty(&vchan->rx_list)) {
 		message = list_first_entry(&vchan->rx_list,
@@ -102,7 +99,7 @@ hab_msg_dequeue(struct virtual_channel *vchan, struct hab_message **msg,
 		/* no message received, retain the original status */
 		*rsize = 0;
 
-	hab_spin_unlock(&vchan->rx_lock, irqs_disabled);
+	spin_unlock_bh(&vchan->rx_lock);
 
 	*msg = message;
 	return ret;
@@ -111,11 +108,9 @@ hab_msg_dequeue(struct virtual_channel *vchan, struct hab_message **msg,
 static void hab_msg_queue(struct virtual_channel *vchan,
 					struct hab_message *message)
 {
-	int irqs_disabled = irqs_disabled();
-
-	hab_spin_lock(&vchan->rx_lock, irqs_disabled);
+	spin_lock_bh(&vchan->rx_lock);
 	list_add_tail(&message->node, &vchan->rx_list);
-	hab_spin_unlock(&vchan->rx_lock, irqs_disabled);
+	spin_unlock_bh(&vchan->rx_lock);
 
 	wake_up(&vchan->rx_queue);
 }
@@ -124,12 +119,11 @@ static int hab_export_enqueue(struct virtual_channel *vchan,
 		struct export_desc *exp)
 {
 	struct uhab_context *ctx = vchan->ctx;
-	int irqs_disabled = irqs_disabled();
 
-	hab_spin_lock(&ctx->imp_lock, irqs_disabled);
+	spin_lock_bh(&ctx->imp_lock);
 	list_add_tail(&exp->node, &ctx->imp_whse);
 	ctx->import_total++;
-	hab_spin_unlock(&ctx->imp_lock, irqs_disabled);
+	spin_unlock_bh(&ctx->imp_lock);
 
 	return 0;
 }
@@ -157,7 +151,6 @@ static int hab_receive_create_export_ack(struct physical_channel *pchan,
 {
 	struct hab_export_ack_recvd *ack_recvd =
 		kzalloc(sizeof(*ack_recvd), GFP_ATOMIC);
-	int irqs_disabled = irqs_disabled();
 
 	if (!ack_recvd)
 		return -ENOMEM;
@@ -177,9 +170,9 @@ static int hab_receive_create_export_ack(struct physical_channel *pchan,
 		sizebytes) != sizebytes)
 		return -EIO;
 
-	hab_spin_lock(&ctx->expq_lock, irqs_disabled);
+	spin_lock_bh(&ctx->expq_lock);
 	list_add_tail(&ack_recvd->node, &ctx->exp_rxq);
-	hab_spin_unlock(&ctx->expq_lock, irqs_disabled);
+	spin_unlock_bh(&ctx->expq_lock);
 
 	return 0;
 }

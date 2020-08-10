@@ -37,6 +37,7 @@ static int afc_gpios = 0;
 #if defined(CONFIG_SEC_A90Q_PROJECT)
 //set L2 for AFC_DET GPIO_51 
 #define GENI_CFG_SEQ_START 0x84 
+#define GENI_CFG_REG80 0x240 
 #endif
 
 struct geni_afc_dev *gafc;

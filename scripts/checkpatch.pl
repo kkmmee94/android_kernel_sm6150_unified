@@ -472,7 +472,6 @@ our $logFunctions = qr{(?x:
 
 our $signature_tags = qr{(?xi:
 	Signed-off-by:|
-	Co-developed-by:|
 	Acked-by:|
 	Tested-by:|
 	Reviewed-by:|
@@ -6002,7 +6001,7 @@ sub process {
 		        for (my $count = $linenr; $count <= $lc; $count++) {
 				my $fmt = get_quoted_string($lines[$count - 1], raw_line($count, 0));
 				$fmt =~ s/%%//g;
-				if ($fmt =~ /(\%[\*\d\.]*p(?![\WFfSsBKRraEhMmIiUDdgVCbGNOx]).)/) {
+				if ($fmt =~ /(\%[\*\d\.]*p(?![\WFfSsBKRraEhMmIiUDdgVCbGNO]).)/) {
 					$bad_extension = $1;
 					last;
 				}

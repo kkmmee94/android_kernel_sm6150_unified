@@ -13,7 +13,7 @@
 #ifndef _IPAHAL_H_
 #define _IPAHAL_H_
 
-#include "../ipa_defs.h"
+#include <linux/msm_ipa.h>
 #include "../../ipa_common_i.h"
 
 /*

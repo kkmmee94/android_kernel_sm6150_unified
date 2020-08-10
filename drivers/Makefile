@@ -50,8 +50,6 @@ obj-y				+= soc/
 obj-$(CONFIG_VIRTIO)		+= virtio/
 obj-$(CONFIG_XEN)		+= xen/
 
-obj-y				+= mfd/
-
 # regulators early, since some subsystems rely on them to initialize
 obj-$(CONFIG_REGULATOR)		+= regulator/
 
@@ -77,7 +75,7 @@ obj-$(CONFIG_FB_INTEL)          += video/fbdev/intelfb/
 
 obj-$(CONFIG_PARPORT)		+= parport/
 obj-$(CONFIG_NVM)		+= lightnvm/
-obj-y				+= base/ block/ misc/ nfc/
+obj-y				+= base/ block/ misc/ mfd/ nfc/
 obj-$(CONFIG_LIBNVDIMM)		+= nvdimm/
 obj-$(CONFIG_DAX)		+= dax/
 obj-$(CONFIG_DMA_SHARED_BUFFER) += dma-buf/
@@ -197,12 +195,9 @@ obj-$(CONFIG_MULTIPLEXER)	+= mux/
 obj-$(CONFIG_SENSORS_SSC)	+= sensors/
 obj-$(CONFIG_ADSP_FACTORY)      += adsp_factory/
 obj-$(CONFIG_ESOC)              += esoc/
-# GNSS driver
-obj-$(CONFIG_GNSS_SIRF)		+= gnsssirf/
 obj-$(CONFIG_SENSORS_FINGERPRINT)	+= fingerprint/
 
-#obj-$(CONFIG_SEC_DEBUG)		+= debug/
-obj-y				+= samsung/
+obj-$(CONFIG_SEC_DEBUG)		+= debug/
 ifeq ($(CONFIG_BATTERY_SAMSUNG_USING_QC), y)
 obj-$(CONFIG_BATTERY_SAMSUNG)	+= battery_qc/
 else
@@ -215,7 +210,7 @@ obj-$(CONFIG_UH)	+= uh/
 
 # FIVE TEE driver
 obj-$(CONFIG_FIVE_TEE_DRIVER)	+= five/
-obj-$(CONFIG_ICD)		+= security/samsung/icdrv/
+obj-$(CONFIG_ICD)		+= icdrv/
 
 obj-y				+= kperfmon/
 

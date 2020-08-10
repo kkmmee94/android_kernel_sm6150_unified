@@ -1070,8 +1070,10 @@ struct dentry *mount_ns_option(struct file_system_type *fs_type,
 	if (IS_ERR(sb))
 		return ERR_CAST(sb);
 
-	if (!parse_options(data, get_pid_ns(sb->s_fs_info)))
-		return ERR_PTR(-EINVAL);
+	if(sb->s_magic == PROC_SUPER_MAGIC) {
+		if (!parse_options(data, get_pid_ns(sb->s_fs_info)))
+			return ERR_PTR(EINVAL);
+	}
 
 	if (!sb->s_root) {
 		int err;

@@ -1,7 +1,4 @@
-#define KPERFMON_KERNEL
 #include <linux/ologk.h>
-#undef KPERFMON_KERNEL
-
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/kernel.h>
@@ -360,21 +357,11 @@ ssize_t kperfmon_read(struct file *filp, char __user *data, size_t count, loff_t
 														readlogpacket.itemes.timestamp.msecond);
 #endif
 
-	if(readlogpacket.itemes.type >= OlogTestEnum_Type_maxnum || readlogpacket.itemes.type < 0) {
-		readlogpacket.itemes.type = PERFLOG_LOG;
-	}
-
-	if(readlogpacket.itemes.id >= OlogTestEnum_ID_maxnum || readlogpacket.itemes.id < 0) {
-		readlogpacket.itemes.id = PERFLOG_UNKNOWN;
-	}
-	
-	length = snprintf(readbuffer, PERFLOG_BUFF_STR_MAX_SIZE + PERFLOG_HEADER_SIZE + 100, "[%s %d %5d %5d (%3d)][%s][%s] %s\n", timestamp, 
+	length = snprintf(readbuffer, PERFLOG_BUFF_STR_MAX_SIZE + PERFLOG_HEADER_SIZE + 100, "[%s %d %d %d (%d)] %s\n", timestamp, 
 															readlogpacket.itemes.type, 
 															readlogpacket.itemes.pid, 
 															readlogpacket.itemes.tid,
 															readlogpacket.itemes.context_length,
-															OlogTestEnum_Type_strings[readlogpacket.itemes.type],
-															OlogTestEnum_ID_strings[readlogpacket.itemes.id],
 															readlogpacket.itemes.context_buffer);
 
 	if(length > count) {
@@ -460,7 +447,7 @@ static void ologk_workqueue_func(struct work_struct *work)
 }
 #endif
 
-void perflog(int logid, const char *fmt, ...) 
+void ologk(const char *fmt, ...) 
 {
 #if !defined(USE_WORKQUEUE)
 	union _uPLogPacket writelogpacket;
@@ -498,8 +485,7 @@ void perflog(int logid, const char *fmt, ...)
 		workqueue->writelogpacket.itemes.timestamp.minute = tm.tm_min;
 		workqueue->writelogpacket.itemes.timestamp.second = tm.tm_sec;
 		workqueue->writelogpacket.itemes.timestamp.msecond = time.tv_usec / 1000;
-		workqueue->writelogpacket.itemes.type = PERFLOG_LOG;
-		workqueue->writelogpacket.itemes.id = logid;
+		workqueue->writelogpacket.itemes.type = 0;
 		workqueue->writelogpacket.itemes.pid = current->pid;//getpid();
 		workqueue->writelogpacket.itemes.tid = 0;//gettid();
 		workqueue->writelogpacket.itemes.context_length = vscnprintf(workqueue->writelogpacket.itemes.context_buffer, PERFLOG_BUFF_STR_MAX_SIZE, fmt, args);
@@ -529,7 +515,7 @@ void perflog(int logid, const char *fmt, ...)
 	writelogpacket.itemes.timestamp.minute = tm.tm_min;
 	writelogpacket.itemes.timestamp.second = tm.tm_sec;
 	writelogpacket.itemes.timestamp.msecond = time.tv_usec / 1000;
-	writelogpacket.itemes.type = type;
+	writelogpacket.itemes.type = 0;
 	writelogpacket.itemes.pid = current->pid;//getpid();
 	writelogpacket.itemes.tid = 0;//gettid();
 	writelogpacket.itemes.context_length = vscnprintf(writelogpacket.itemes.context_buffer, PERFLOG_BUFF_STR_MAX_SIZE, fmt, args);
@@ -551,8 +537,7 @@ void perflog(int logid, const char *fmt, ...)
 
 	va_end(args);
 }
-//EXPORT_SYMBOL(ologk);
-EXPORT_SYMBOL(perflog);
+EXPORT_SYMBOL(ologk);
 
 module_init(kperfmon_init);
 module_exit(kperfmon_exit);

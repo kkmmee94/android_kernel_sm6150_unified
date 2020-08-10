@@ -367,16 +367,6 @@ static bool pcie_pme_check_wakeup(struct pci_bus *bus)
 	return false;
 }
 
-static void pcie_pme_disable_interrupt(struct pci_dev *port,
-				       struct pcie_pme_service_data *data)
-{
-	spin_lock_irq(&data->lock);
-	pcie_pme_interrupt_enable(port, false);
-	pcie_clear_root_pme_status(port);
-	data->noirq = true;
-	spin_unlock_irq(&data->lock);
-}
-
 /**
  * pcie_pme_suspend - Suspend PCIe PME service device.
  * @srv: PCIe service device to suspend.
@@ -401,7 +391,11 @@ static int pcie_pme_suspend(struct pcie_device *srv)
 			return 0;
 	}
 
-	pcie_pme_disable_interrupt(port, data);
+	spin_lock_irq(&data->lock);
+	pcie_pme_interrupt_enable(port, false);
+	pcie_clear_root_pme_status(port);
+	data->noirq = true;
+	spin_unlock_irq(&data->lock);
 
 	synchronize_irq(srv->irq);
 
@@ -437,11 +431,9 @@ static int pcie_pme_resume(struct pcie_device *srv)
  */
 static void pcie_pme_remove(struct pcie_device *srv)
 {
-	struct pcie_pme_service_data *data = get_service_data(srv);
-
-	pcie_pme_disable_interrupt(srv->port, data);
+	pcie_pme_suspend(srv);
 	free_irq(srv->irq, srv);
-	kfree(data);
+	kfree(get_service_data(srv));
 }
 
 static struct pcie_port_service_driver pcie_pme_driver = {

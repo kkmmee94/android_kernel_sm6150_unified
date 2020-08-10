@@ -231,7 +231,6 @@ enum {
 	/* need to update now */
 	DVFS_TOUCH_ID			= 0x00000001,
 	DVFS_FINGER_ID			= 0x00000002,
-	DVFS_ARGOS_ID			= 0x00000004,
 
 	DVFS_MAX_ID
 };
@@ -269,12 +268,20 @@ __ATTR(_name, 0644, show_##_name, store_##_name)
 static struct freq_attr _name =			\
 __ATTR(_name, 0200, NULL, store_##_name)
 
+struct global_attr {
+	struct attribute attr;
+	ssize_t (*show)(struct kobject *kobj,
+			struct attribute *attr, char *buf);
+	ssize_t (*store)(struct kobject *a, struct attribute *b,
+			 const char *c, size_t count);
+};
+
 #define define_one_global_ro(_name)		\
-static struct kobj_attribute _name =		\
+static struct global_attr _name =		\
 __ATTR(_name, 0444, show_##_name, NULL)
 
 #define define_one_global_rw(_name)		\
-static struct kobj_attribute _name =		\
+static struct global_attr _name =		\
 __ATTR(_name, 0644, show_##_name, store_##_name)
 
 
@@ -444,7 +451,6 @@ static inline void cpufreq_resume(void) {}
 /* Policy Notifiers  */
 #define CPUFREQ_ADJUST			(0)
 #define CPUFREQ_NOTIFY			(1)
-#define CPUFREQ_INCOMPATIBLE	(6)
 
 #ifdef CONFIG_CPU_FREQ
 int cpufreq_register_notifier(struct notifier_block *nb, unsigned int list);
@@ -554,19 +560,6 @@ static inline void cpufreq_policy_apply_limits(struct cpufreq_policy *policy)
 		__cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
 	else if (policy->min > policy->cur)
 		__cpufreq_driver_target(policy, policy->min, CPUFREQ_RELATION_L);
-}
-
-static inline unsigned int
-cpufreq_policy_apply_limits_fast(struct cpufreq_policy *policy)
-{
-	unsigned int ret = 0;
-
-	if (policy->max < policy->cur)
-		ret = cpufreq_driver_fast_switch(policy, policy->max);
-	else if (policy->min > policy->cur)
-		ret = cpufreq_driver_fast_switch(policy, policy->min);
-
-	return ret;
 }
 
 /* Governor attribute set */
@@ -957,6 +950,4 @@ unsigned int cpufreq_generic_get(unsigned int cpu);
 int cpufreq_generic_init(struct cpufreq_policy *policy,
 		struct cpufreq_frequency_table *table,
 		unsigned int transition_latency);
-
-extern unsigned int cpuinfo_max_freq_cached;
 #endif /* _LINUX_CPUFREQ_H */

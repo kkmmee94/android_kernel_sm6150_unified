@@ -197,16 +197,11 @@ static ssize_t node_read_vmstat(struct device *dev,
 			     sum_zone_numa_state(nid, i));
 #endif
 
-	for (i = 0; i < NR_VM_NODE_STAT_ITEMS; i++) {
-		/* Skip hidden vmstat items. */
-		if (*vmstat_text[i + NR_VM_ZONE_STAT_ITEMS +
-				 NR_VM_NUMA_STAT_ITEMS] == '\0')
-			continue;
+	for (i = 0; i < NR_VM_NODE_STAT_ITEMS; i++)
 		n += sprintf(buf+n, "%s %lu\n",
 			     vmstat_text[i + NR_VM_ZONE_STAT_ITEMS +
 			     NR_VM_NUMA_STAT_ITEMS],
 			     node_page_state(pgdat, i));
-	}
 
 	return n;
 }

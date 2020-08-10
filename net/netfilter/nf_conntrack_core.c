@@ -56,11 +56,9 @@
 #include <net/netfilter/nf_nat_helper.h>
 #include <net/netns/hash.h>
 
-#ifdef CONFIG_KNOX_NCM
 /* START_OF_KNOX_NPA */
 #include <net/ncm.h>
 /* END_OF_KNOX_NPA */
-#endif
 #include "nf_internals.h"
 
 #define NF_CONNTRACK_VERSION	"0.5.0"
@@ -332,13 +330,13 @@ clean_from_lists(struct nf_conn *ct)
 static void nf_ct_add_to_dying_list(struct nf_conn *ct)
 {
 	struct ct_pcpu *pcpu;
-#ifdef CONFIG_KNOX_NCM
+	
 	/* START_OF_KNOX_NPA */
 	if ( (check_ncm_flag()) && (ct != NULL) && (atomic_read(&ct->startFlow)) ) {
 		knox_collect_conntrack_data(ct, NCM_FLOW_TYPE_CLOSE, 10);
 	}
 	/* END_OF_KNOX_NPA */
-#endif
+
 	/* add this conntrack to the (per cpu) dying list */
 	ct->cpu = smp_processor_id();
 	pcpu = per_cpu_ptr(nf_ct_net(ct)->ct.pcpu_lists, ct->cpu);
@@ -810,18 +808,10 @@ __nf_conntrack_confirm(struct sk_buff *skb)
 	 * REJECT will give spurious warnings here.
 	 */
 
-	/* Another skb with the same unconfirmed conntrack may
-	 * win the race. This may happen for bridge(br_flood)
-	 * or broadcast/multicast packets do skb_clone with
-	 * unconfirmed conntrack.
+	/* No external references means no one else could have
+	 * confirmed us.
 	 */
-	if (unlikely(nf_ct_is_confirmed(ct))) {
-		WARN_ON_ONCE(1);
-		nf_conntrack_double_unlock(hash, reply_hash);
-		local_bh_enable();
-		return NF_DROP;
-	}
-
+	WARN_ON(nf_ct_is_confirmed(ct));
 	pr_debug("Confirming conntrack %pK\n", ct);
 	/* We have to check the DYING flag after unlink to prevent
 	 * a race against nf_ct_get_next_corpse() possibly called from
@@ -924,22 +914,6 @@ nf_conntrack_tuple_taken(const struct nf_conntrack_tuple *tuple,
 		}
 
 		if (nf_ct_key_equal(h, tuple, zone, net)) {
-			/* Tuple is taken already, so caller will need to find
-			 * a new source port to use.
-			 *
-			 * Only exception:
-			 * If the *original tuples* are identical, then both
-			 * conntracks refer to the same flow.
-			 * This is a rare situation, it can occur e.g. when
-			 * more than one UDP packet is sent from same socket
-			 * in different threads.
-			 *
-			 * Let nf_ct_resolve_clash() deal with this later.
-			 */
-			if (nf_ct_tuple_equal(&ignored_conntrack->tuplehash[IP_CT_DIR_ORIGINAL].tuple,
-					      &ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple))
-				continue;
-
 			NF_CT_STAT_INC_ATOMIC(net, found);
 			rcu_read_unlock();
 			return 1;
@@ -1175,11 +1149,10 @@ __nf_conntrack_alloc(struct net *net,
 		     gfp_t gfp, u32 hash)
 {
 	struct nf_conn *ct;
-#ifdef CONFIG_KNOX_NCM
+	
 	/* START_OF_KNOX_NPA */
 	struct timespec open_timespec;
 	/* END_OF_KNOX_NPA */
-#endif
 
 	/* We don't want any race condition at early drop stage */
 	atomic_inc(&net->ct.count);
@@ -1204,7 +1177,7 @@ __nf_conntrack_alloc(struct net *net,
 		goto out;
 
 	spin_lock_init(&ct->lock);
-#ifdef CONFIG_KNOX_NCM
+	
 	/* START_OF_KNOX_NPA */
 	/* initialize the conntrack structure members when memory is allocated */
 	if (ct != NULL) {
@@ -1227,7 +1200,8 @@ __nf_conntrack_alloc(struct net *net,
 		atomic_set(&ct->intermediateFlow, 0);
 	}
 	/* END_OF_KNOX_NPA */
-#endif
+	
+	
 	ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple = *orig;
 	ct->tuplehash[IP_CT_DIR_ORIGINAL].hnnode.pprev = NULL;
 	ct->tuplehash[IP_CT_DIR_REPLY].tuple = *repl;
@@ -1628,7 +1602,7 @@ void __nf_ct_refresh_acct(struct nf_conn *ct,
 #if defined(CONFIG_IP_NF_TARGET_NATTYPE_MODULE)
 	nattype_ref_timer = rcu_dereference(nattype_refresh_timer);
 	if (nattype_ref_timer)
-		nattype_ref_timer(ct->nattype_entry, ct->timeout);
+		nattype_ref_timer(ct->nattype_entry, ct->timeout.expires);
 #endif
 
 acct:

@@ -129,12 +129,11 @@ void fscrypt_sdp_cache_add_inode_num(struct inode *inode)
 void fscrypt_sdp_cache_remove_inode_num(struct inode *inode)
 {
 	if (inode) {
-		struct list_head *e, *temp;
+		struct list_head *e;
 		struct fscrypt_info *ci = inode->i_crypt_info;
 
 		spin_lock(&list_lock);
-//		list_for_each(e, &list_head) {
-		list_for_each_safe(e, temp, &list_head) {
+		list_for_each(e, &list_head) {
 			struct _entry *entry = list_entry(e, struct _entry, list);
 
 			if (entry->sb == inode->i_sb) {

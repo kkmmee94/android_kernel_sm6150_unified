@@ -28,14 +28,11 @@
 #include <linux/regulator/consumer.h>
 #include <linux/clk.h>
 
-#if defined(CONFIG_CNSS) && !defined(CONFIG_ICNSS)
+#if defined(CONFIG_CNSS)
 #include <net/cnss.h>
 #endif
 
-#ifdef CONFIG_BTFM_SLIM
 #include "btfm_slim.h"
-#endif
-
 #include <linux/fs.h>
 
 #define BT_PWR_DBG(fmt, arg...)  pr_debug("%s: " fmt "\n", __func__, ## arg)
@@ -46,7 +43,6 @@
 static const struct of_device_id bt_power_match_table[] = {
 	{	.compatible = "qca,ar3002" },
 	{	.compatible = "qca,qca6174" },
-	{	.compatible = "qca,qca6390" },
 	{	.compatible = "qca,wcn3990" },
 	{}
 };
@@ -55,7 +51,6 @@ static struct bt_power_vreg_data bt_power_vreg_info[] = {
 	{NULL, "qca,bt-vdd-vl", 1055000, 1055000, 0, false, false},
 	{NULL, "qca,bt-vdd-vm", 1350000, 1350000, 0, false, false},
 	{NULL, "qca,bt-vdd-5c", 2040000, 2040000, 0, false, false},
-	{NULL, "qca,bt-vdd-5a", 2040000, 2040000, 0, false, false},
 	{NULL, "qca,bt-vdd-vh", 1900000, 1900000, 0, false, false},
 	{NULL, "qca,bt-vdd-io", 1700000, 1900000, 0, false, false},
 	{NULL, "qca,bt-vdd-xtal", 1700000, 1900000, 0, false, false},
@@ -338,7 +333,7 @@ static const struct rfkill_ops bluetooth_power_rfkill_ops = {
 	.set_block = bluetooth_toggle_radio,
 };
 
-#if defined(CONFIG_CNSS) && !defined(CONFIG_ICNSS)
+#if defined(CONFIG_CNSS)
 static ssize_t enable_extldo(struct device *dev, struct device_attribute *attr,
 			char *buf)
 {
@@ -679,7 +674,6 @@ static long bt_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	int chipset_version = 0;
 
 	switch (cmd) {
-#ifdef CONFIG_BTFM_SLIM
 	case BT_CMD_SLIM_TEST:
 		if (!bt_power_pdata->slim_dev) {
 			BT_PWR_ERR("slim_dev is null\n");
@@ -689,7 +683,6 @@ static long bt_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			bt_power_pdata->slim_dev->platform_data
 		);
 		break;
-#endif
 	case BT_CMD_PWR_CTRL:
 		pwr_cntrl = (int)arg;
 		BT_PWR_ERR("BT_CMD_PWR_CTRL pwr_cntrl:%d", pwr_cntrl);
@@ -743,20 +736,20 @@ static int __init bluetooth_power_init(void)
 
 	bt_major = register_chrdev(0, "bt", &bt_dev_fops);
 	if (bt_major < 0) {
-		BT_PWR_ERR("failed to allocate char dev\n");
+		BTFMSLIM_ERR("failed to allocate char dev\n");
 		goto chrdev_unreg;
 	}
 
 	bt_class = class_create(THIS_MODULE, "bt-dev");
 	if (IS_ERR(bt_class)) {
-		BT_PWR_ERR("coudn't create class");
+		BTFMSLIM_ERR("coudn't create class");
 		goto chrdev_unreg;
 	}
 
 
 	if (device_create(bt_class, NULL, MKDEV(bt_major, 0),
 		NULL, "btpower") == NULL) {
-		BT_PWR_ERR("failed to allocate char dev\n");
+		BTFMSLIM_ERR("failed to allocate char dev\n");
 		goto chrdev_unreg;
 	}
 	return 0;

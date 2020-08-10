@@ -1,4 +1,4 @@
-/* Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2016-2018, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -77,17 +77,16 @@ hab_vchan_free(struct kref *ref)
 	struct physical_channel *pchan = vchan->pchan;
 	struct uhab_context *ctx = vchan->ctx;
 	struct virtual_channel *vc, *vc_tmp;
-	int irqs_disabled = irqs_disabled();
 
-	hab_spin_lock(&vchan->rx_lock, irqs_disabled);
+	spin_lock_bh(&vchan->rx_lock);
 	list_for_each_entry_safe(message, msg_tmp, &vchan->rx_list, node) {
 		list_del(&message->node);
 		hab_msg_free(message);
 	}
-	hab_spin_unlock(&vchan->rx_lock, irqs_disabled);
+	spin_unlock_bh(&vchan->rx_lock);
 
 	/* release vchan from pchan. no more msg for this vchan */
-	hab_write_lock(&pchan->vchans_lock, irqs_disabled);
+	write_lock_bh(&pchan->vchans_lock);
 	list_for_each_entry_safe(vc, vc_tmp, &pchan->vchannels, pnode) {
 		if (vchan == vc) {
 			list_del(&vc->pnode);
@@ -96,15 +95,15 @@ hab_vchan_free(struct kref *ref)
 			break;
 		}
 	}
-	hab_write_unlock(&pchan->vchans_lock, irqs_disabled);
+	write_unlock_bh(&pchan->vchans_lock);
 
 	/* the release vchan from ctx was done earlier in vchan close() */
 	hab_ctx_put(ctx); /* now ctx is not needed from this vchan's view */
 
 	/* release idr at the last so same idr will not be used early */
-	hab_spin_lock(&pchan->vid_lock, irqs_disabled);
+	spin_lock_bh(&pchan->vid_lock);
 	idr_remove(&pchan->vchan_idr, HAB_VCID_GET_ID(vchan->id));
-	hab_spin_unlock(&pchan->vid_lock, irqs_disabled);
+	spin_unlock_bh(&pchan->vid_lock);
 
 	hab_pchan_put(pchan); /* no more need for pchan from this vchan */
 
@@ -123,9 +122,8 @@ hab_vchan_get(struct physical_channel *pchan, struct hab_header *header)
 	uint32_t session_id = HAB_HEADER_GET_SESSION_ID(*header);
 	size_t sizebytes = HAB_HEADER_GET_SIZE(*header);
 	uint32_t payload_type = HAB_HEADER_GET_TYPE(*header);
-	int irqs_disabled = irqs_disabled();
 
-	hab_spin_lock(&pchan->vid_lock, irqs_disabled);
+	spin_lock_bh(&pchan->vid_lock);
 	vchan = idr_find(&pchan->vchan_idr, HAB_VCID_GET_ID(vchan_id));
 	if (vchan) {
 		if (vchan->session_id != session_id)
@@ -164,7 +162,7 @@ hab_vchan_get(struct physical_channel *pchan, struct hab_header *header)
 			vchan = NULL;
 		}
 	}
-	hab_spin_unlock(&pchan->vid_lock, irqs_disabled);
+	spin_unlock_bh(&pchan->vid_lock);
 
 	return vchan;
 }

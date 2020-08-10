@@ -203,8 +203,7 @@ int fscrypt_has_permitted_context(struct inode *parent, struct inode *child)
 	child_ci = child->i_crypt_info;
 
 	if (parent_ci && child_ci) {
-		return memcmp(parent_ci->ci_master_key_descriptor,
-			      child_ci->ci_master_key_descriptor,
+		return memcmp(parent_ci->ci_master_key, child_ci->ci_master_key,
 			      FS_KEY_DESCRIPTOR_SIZE) == 0 &&
 			(parent_ci->ci_data_mode == child_ci->ci_data_mode) &&
 			(parent_ci->ci_filename_mode ==
@@ -259,7 +258,7 @@ int fscrypt_inherit_context(struct inode *parent, struct inode *child,
 	ctx.contents_encryption_mode = ci->ci_data_mode;
 	ctx.filenames_encryption_mode = ci->ci_filename_mode;
 	ctx.flags = ci->ci_flags;
-	memcpy(ctx.master_key_descriptor, ci->ci_master_key_descriptor,
+	memcpy(ctx.master_key_descriptor, ci->ci_master_key,
 	       FS_KEY_DESCRIPTOR_SIZE);
 	get_random_bytes(ctx.nonce, FS_KEY_DERIVATION_NONCE_SIZE);
 	BUILD_BUG_ON(sizeof(ctx) != FSCRYPT_SET_CONTEXT_MAX_SIZE);
@@ -268,7 +267,7 @@ int fscrypt_inherit_context(struct inode *parent, struct inode *child,
 #endif
 
 #ifdef CONFIG_FSCRYPT_SDP
-	res = fscrypt_sdp_inherit_context(parent, child, &ctx, fs_data);
+	res = fscrypt_sdp_inherit_context(parent, child, &ctx);
 	if (res) {
 		printk_once(KERN_WARNING
 				"%s: Failed to set sensitive ongoing flag (err:%d)\n", __func__, res);

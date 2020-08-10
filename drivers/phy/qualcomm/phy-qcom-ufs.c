@@ -221,12 +221,10 @@ skip_txrx_clk:
 	__ufs_qcom_phy_clk_get(phy_common->dev, "ref_clk_parent",
 				   &phy_common->ref_clk_parent, false);
 
-	/*
-	 * Some platforms may not have the ON/OFF control for reference clock,
-	 * hence this clock may be optional.
-	 */
-	__ufs_qcom_phy_clk_get(phy_common->dev, "ref_clk",
-				   &phy_common->ref_clk, false);
+	err = ufs_qcom_phy_clk_get(phy_common->dev, "ref_clk",
+				   &phy_common->ref_clk);
+	if (err)
+		goto out;
 
 	/*
 	 * "ref_aux_clk" is optional and only supported by certain
@@ -416,17 +414,11 @@ static int ufs_qcom_phy_enable_ref_clk(struct ufs_qcom_phy *phy)
 		}
 	}
 
-	/*
-	 * "ref_clk" is optional clock hence make sure that clk reference
-	 * is available before trying to enable the clock.
-	 */
-	if (phy->ref_clk) {
-		ret = clk_prepare_enable(phy->ref_clk);
-		if (ret) {
-			dev_err(phy->dev, "%s: ref_clk enable failed %d\n",
-					__func__, ret);
-			goto out_disable_parent;
-		}
+	ret = clk_prepare_enable(phy->ref_clk);
+	if (ret) {
+		dev_err(phy->dev, "%s: ref_clk enable failed %d\n",
+				__func__, ret);
+		goto out_disable_parent;
 	}
 
 	/*
@@ -507,14 +499,7 @@ static void ufs_qcom_phy_disable_ref_clk(struct ufs_qcom_phy *phy)
 		 */
 		if (phy->ref_aux_clk)
 			clk_disable_unprepare(phy->ref_aux_clk);
-
-		/*
-		 * "ref_clk" is optional clock hence make sure that clk
-		 * reference is available before trying to disable the clock.
-		 */
-		if (phy->ref_clk)
-			clk_disable_unprepare(phy->ref_clk);
-
+		clk_disable_unprepare(phy->ref_clk);
 		/*
 		 * "ref_clk_parent" is optional clock hence make sure that clk
 		 * reference is available before trying to disable the clock.

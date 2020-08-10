@@ -12,20 +12,6 @@ config SEC_A60Q_CHN_PROJECT
         help
           Support for Samsung A60Q CHN OPEN Project
 		  
-config SEC_M40_PROJECT
-        depends on ARCH_SM6150
-        default n
-        bool "Samsung M40 Project"
-        help
-          Support for Samsung M40 Project
-		  
-config SEC_M40_SWA_PROJECT
-        depends on SEC_M40_PROJECT
-        default n
-        bool "Samsung M40 SWA OPEN Project"
-        help
-          Support for Samsung M40 SWA OPEN Project
-
 config SEC_A60Q_SWA_PROJECT
         depends on SEC_A60Q_PROJECT
         default n
@@ -46,7 +32,7 @@ config SEC_A70Q_EUR_PROJECT
         bool "Samsung A70Q EUR OPEN Project"
         help
           Support for Samsung A70Q EUR OPEN Project
-
+		  
 config SEC_A70Q_EUR_LDU_PROJECT
         depends on SEC_A70Q_PROJECT
         default n
@@ -109,21 +95,6 @@ config SEC_A70Q_SWA_PROJECT
         bool "Samsung A70Q SWA OPEN Project"
         help
           Support for Samsung A70Q SWA OPEN Project
-		  
-config SEC_A70S_PROJECT
-        depends on ARCH_SM6150
-        default n
-        bool "Samsung A70S Project"
-        help
-          Support for Samsung A70S Project
-		  
-config SEC_A70S_SWA_PROJECT
-        depends on SEC_A70S_PROJECT
-        default n
-        bool "Samsung A70S SWA OPEN Project"
-        help
-          Support for Samsung A70S SWA OPEN Project
-		  
 
 config SEC_R1Q_PROJECT
         depends on ARCH_SM6150
@@ -159,13 +130,6 @@ config SEC_R1Q_CHN_LDU_PROJECT
         bool "Samsung R1Q CHN LDU Project"
         help
           Support for Samsung R1Q CHN LDU Project
-
-config SEC_R1Q_KOR_PROJECT
-        depends on SEC_R1Q_PROJECT
-        default n
-        bool "Samsung A90Q KOR SINGLE Project"
-        help
-          Support for Samsung R1Q KOR SINGLE Project
 
 config SEC_A90Q_PROJECT
         depends on ARCH_SM6150
@@ -206,67 +170,3 @@ config SEC_A90Q_CHN_LDU_PROJECT
         bool "Samsung A90Q CHN LDU Project"
         help
           Support for Samsung A90Q CHN LDU Project
-
-config SEC_A90Q_KOR_PROJECT
-        depends on SEC_A90Q_PROJECT
-	select SEC_R1Q_KOR_PROJECT
-        default n
-        bool "Samsung A90Q KOR SINGLE Project"
-        help
-          Support for Samsung A90Q KOR SINGLE Project
-		  
-config SEC_A70SQ_PROJECT
-        depends on ARCH_SM6150
-        default n
-        bool "Samsung A70S Project"
-        help
-          Support for Samsung R1Q Project
-
-config SEC_A70SQ_EUR_PROJECT
-        depends on SEC_A70SQ_PROJECT
-        default n
-        bool "Samsung A70S EUR OPEN Project"
-        help
-          Support for Samsung A70S EUR OPEN Project
-
-config SEC_A70SQ_SWA_PROJECT
-        depends on SEC_A70SQ_PROJECT
-        default n
-        bool "Samsung A70S SWA OPEN Project"
-        help
-          Support for Samsung A70S SWA OPEN Project
-		  
-config SEC_A71_PROJECT
-        depends on ARCH_SM6150
-        default n
-        bool "Samsung A71 Project"
-        help
-          Support for Samsung A71 Project
-
-config SEC_A71_SWA_PROJECT
-        depends on SEC_A71_PROJECT
-        default n
-        bool "Samsung A71 SWA OPEN Project"
-        help
-          Support for Samsung A71 SWA OPEN Project
-
-config SEC_A71_EUR_PROJECT
-        depends on SEC_A71_PROJECT
-        default n
-        bool "Samsung A71 EUR OPEN Project"
-        help
-          Support for Samsung A71 EUR OPEN Project
-		  
-config SEC_A71_CAN_PROJECT
-        depends on SEC_A71_PROJECT
-        default n
-        bool "Samsung A71 CAN SINGLE Project"
-        help
-          Support for Samsung A71 CAN SINGLE Project
-
-config SEC_A71_EUR_LDU_PROJECT
-        depends on SEC_A71_PROJECT
-        default n
-        bool "Samsung A71 EUR LDU Project"
-        help
-          Support for Samsung A71 EUR LDU Project

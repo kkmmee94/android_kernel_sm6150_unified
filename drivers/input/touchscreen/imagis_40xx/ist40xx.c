@@ -235,7 +235,7 @@ int ist40xx_set_input_device(struct ist40xx_data *data)
 	set_bit(EV_ABS, data->input_dev->evbit);
 	set_bit(EV_KEY, data->input_dev->evbit);
 	set_bit(INPUT_PROP_DIRECT, data->input_dev->propbit);
-	set_bit(KEY_WAKEUP, data->input_dev->keybit);
+	set_bit(KEY_HOMEPAGE, data->input_dev->keybit);
 	set_bit(KEY_INT_CANCEL, data->input_dev->keybit);
 
 	input_set_abs_params(data->input_dev, ABS_MT_PALM, 0, 1, 0, 0);
@@ -395,11 +395,11 @@ void ist40xx_special_cmd(struct ist40xx_data *data, int cmd)
 							"AOT Double Tap Trigger\n");
 
 					input_report_key(data->input_dev,
-							 KEY_WAKEUP,
+							 KEY_HOMEPAGE,
 							 true);
 					input_sync(data->input_dev);
 					input_report_key(data->input_dev,
-							 KEY_WAKEUP,
+							 KEY_HOMEPAGE,
 							 false);
 					input_sync(data->input_dev);
 					/* request from sensor team */
@@ -969,9 +969,7 @@ irqreturn_t ist40xx_irq_thread(int irq, void *ptr)
 	}
 
 	if ((CMCS_MSG(*msg) == CM_MSG_VALID) || (CMCS_MSG(*msg) == CS_MSG_VALID) ||
-		(CMCS_MSG(*msg) == CMJIT_MSG_VALID) ||
-		(CMCS_MSG(*msg) == CRJIT_MSG_VALID) ||
-		(CMCS_MSG(*msg) == CRJIT2_MSG_VALID)) {
+		(CMCS_MSG(*msg) == CMJIT_MSG_VALID)) {
 		data->status.cmcs = *msg;
 		data->status.cmcs_result = CMCS_RESULT(*msg);
 		input_info(true, &data->client->dev, "CMCS notify: 0x%08X\n", *msg);
@@ -1832,8 +1830,6 @@ static int ist40xx_parse_dt(struct device *dev, struct ist40xx_data *data)
 
 	data->dt_data->enable_settings_aot = of_property_read_bool(np, "enable_settings_aot");
 	data->dt_data->support_fod = of_property_read_bool(np, "support_fod");
-
-	data->dt_data->enable_fpcb_noise_test = of_property_read_bool(np, "enable_fpcb_noise_test");
 
 	if (of_property_read_u32_array(np, "imagis,cm_spec", cm_spec, 3)) {
 		input_err(true, dev, "%s: Failed to get zone's size\n", __func__);

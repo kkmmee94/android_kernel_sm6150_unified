@@ -36,19 +36,6 @@
 	.low_power_cycles = lp	\
 }
 
-#define UBWC_CONFIG(mco, mlo, hbbo, rs1, mc, ml, hbb, rs2) \
-{	\
-	.sOverrideBitInfo.bMaxChannelsOverride = mc,	\
-	.sOverrideBitInfo.bMalLengthOverride = mlo,	\
-	.sOverrideBitInfo.bHBBOverride = hbbo,	\
-	.sOverrideBitInfo.reserved1 = rs1,	\
-	.nMaxChannels = mc,	\
-	.nMalLength = ml,	\
-	.nHighestBankBit = hbb,	\
-	.reserved2 = {rs2}	\
-}
-
-
 #define EFUSE_ENTRY(sa, s, m, sh, p) \
 {	\
 	.start_address = sa,		\
@@ -58,39 +45,16 @@
 	.purpose = p	\
 }
 
+#define GCC_VIDEO_AXI_REG_START_ADDR	0x10B024
+#define GCC_VIDEO_AXI_REG_SIZE		0xC
+
 static struct msm_vidc_codec_data default_codec_data[] =  {
 	CODEC_ENTRY(V4L2_PIX_FMT_H264, MSM_VIDC_ENCODER, 125, 675, 320),
 	CODEC_ENTRY(V4L2_PIX_FMT_H264, MSM_VIDC_DECODER, 125, 675, 320),
 };
 
-/* Update with atoll data */
-static struct msm_vidc_codec_data atoll_codec_data[] =  {
-	CODEC_ENTRY(V4L2_PIX_FMT_H264, MSM_VIDC_ENCODER, 125, 675, 320),
-	CODEC_ENTRY(V4L2_PIX_FMT_HEVC, MSM_VIDC_ENCODER, 125, 675, 320),
-	CODEC_ENTRY(V4L2_PIX_FMT_VP8, MSM_VIDC_ENCODER, 125, 675, 320),
-	CODEC_ENTRY(V4L2_PIX_FMT_TME, MSM_VIDC_ENCODER, 0, 540, 540),
-	CODEC_ENTRY(V4L2_PIX_FMT_MPEG2, MSM_VIDC_DECODER, 50, 200, 200),
-	CODEC_ENTRY(V4L2_PIX_FMT_H264, MSM_VIDC_DECODER, 50, 200, 200),
-	CODEC_ENTRY(V4L2_PIX_FMT_HEVC, MSM_VIDC_DECODER, 50, 200, 200),
-	CODEC_ENTRY(V4L2_PIX_FMT_VP8, MSM_VIDC_DECODER, 50, 200, 200),
-	CODEC_ENTRY(V4L2_PIX_FMT_VP9, MSM_VIDC_DECODER, 50, 200, 200),
-};
-
 /* Update with SM6150 data */
 static struct msm_vidc_codec_data sm6150_codec_data[] =  {
-	CODEC_ENTRY(V4L2_PIX_FMT_H264, MSM_VIDC_ENCODER, 125, 675, 320),
-	CODEC_ENTRY(V4L2_PIX_FMT_HEVC, MSM_VIDC_ENCODER, 125, 675, 320),
-	CODEC_ENTRY(V4L2_PIX_FMT_VP8, MSM_VIDC_ENCODER, 125, 675, 320),
-	CODEC_ENTRY(V4L2_PIX_FMT_TME, MSM_VIDC_ENCODER, 0, 540, 540),
-	CODEC_ENTRY(V4L2_PIX_FMT_MPEG2, MSM_VIDC_DECODER, 50, 200, 200),
-	CODEC_ENTRY(V4L2_PIX_FMT_H264, MSM_VIDC_DECODER, 50, 200, 200),
-	CODEC_ENTRY(V4L2_PIX_FMT_HEVC, MSM_VIDC_DECODER, 50, 200, 200),
-	CODEC_ENTRY(V4L2_PIX_FMT_VP8, MSM_VIDC_DECODER, 50, 200, 200),
-	CODEC_ENTRY(V4L2_PIX_FMT_VP9, MSM_VIDC_DECODER, 50, 200, 200),
-};
-
-/* Update with trinket data */
-static struct msm_vidc_codec_data trinket_codec_data[] =  {
 	CODEC_ENTRY(V4L2_PIX_FMT_H264, MSM_VIDC_ENCODER, 125, 675, 320),
 	CODEC_ENTRY(V4L2_PIX_FMT_HEVC, MSM_VIDC_ENCODER, 125, 675, 320),
 	CODEC_ENTRY(V4L2_PIX_FMT_VP8, MSM_VIDC_ENCODER, 125, 675, 320),
@@ -178,65 +142,6 @@ static struct msm_vidc_common_data default_common_data[] = {
 	},
 };
 
-static struct msm_vidc_common_data atoll_common_data[] = {
-	{
-		.key = "qcom,never-unload-fw",
-		.value = 1,
-	},
-	{
-		.key = "qcom,sw-power-collapse",
-		.value = 1,
-	},
-	{
-		.key = "qcom,domain-attr-non-fatal-faults",
-		.value = 1,
-	},
-	{
-		.key = "qcom,max-secure-instances",
-		.value = 3,
-	},
-	{
-		.key = "qcom,max-hw-load",
-		.value = 1944000,
-	},
-	{
-		.key = "qcom,max-hq-mbs-per-frame",
-		.value = 8160,
-	},
-	{
-		.key = "qcom,max-hq-mbs-per-sec",
-		.value = 244800,  /* 1920 x 1088 @ 30 fps */
-	},
-	{
-		.key = "qcom,max-b-frame-size",
-		.value = 8160,
-	},
-	{
-		.key = "qcom,max-b-frames-per-sec",
-		.value = 60,
-	},
-	{
-		.key = "qcom,power-collapse-delay",
-		.value = 1500,
-	},
-	{
-		.key = "qcom,hw-resp-timeout",
-		.value = 1000,
-	},
-	{
-		.key = "qcom,dcvs",
-		.value = 1,
-	},
-	{
-		.key = "qcom,fw-cycles",
-		.value = 733003,
-	},
-	{
-		.key = "qcom,fw-vpp-cycles",
-		.value = 225975,
-	},
-};
-
 static struct msm_vidc_common_data sm6150_common_data[] = {
 	{
 		.key = "qcom,never-unload-fw",
@@ -252,7 +157,14 @@ static struct msm_vidc_common_data sm6150_common_data[] = {
 	},
 	{
 		.key = "qcom,max-secure-instances",
-		.value = 3,
+		.value = 2,             /*
+					 * As per design driver allows 3rd
+					 * instance as well since the secure
+					 * flags were updated later for the
+					 * current instance. Hence total
+					 * secure sessions would be
+					 * max-secure-instances + 1.
+					 */
 	},
 	{
 		.key = "qcom,max-hw-load",
@@ -263,67 +175,8 @@ static struct msm_vidc_common_data sm6150_common_data[] = {
 		.value = 8160,
 	},
 	{
-		.key = "qcom,max-hq-mbs-per-sec",
-		.value = 244800,  /* 1920 x 1088 @ 30 fps */
-	},
-	{
-		.key = "qcom,max-b-frame-size",
-		.value = 8160,
-	},
-	{
-		.key = "qcom,max-b-frames-per-sec",
-		.value = 60,
-	},
-	{
-		.key = "qcom,power-collapse-delay",
-		.value = 1500,
-	},
-	{
-		.key = "qcom,hw-resp-timeout",
-		.value = 1000,
-	},
-	{
-		.key = "qcom,dcvs",
-		.value = 1,
-	},
-	{
-		.key = "qcom,fw-cycles",
-		.value = 733003,
-	},
-	{
-		.key = "qcom,fw-vpp-cycles",
-		.value = 225975,
-	},
-};
-
-static struct msm_vidc_common_data trinket_common_data[] = {
-	{
-		.key = "qcom,never-unload-fw",
-		.value = 1,
-	},
-	{
-		.key = "qcom,sw-power-collapse",
-		.value = 1,
-	},
-	{
-		.key = "qcom,domain-attr-non-fatal-faults",
-		.value = 1,
-	},
-	{
-		.key = "qcom,max-secure-instances",
-		.value = 6,
-	},
-	{
-		.key = "qcom,max-hw-load",
-		.value = 1944000,
-	},
-	{
-		.key = "qcom,max-hq-mbs-per-frame",
-		.value = 8160,
-	},
-	{
-		.key = "qcom,max-hq-mbs-per-sec",
-		.value = 244800,  /* 1920 x 1088 @ 30 fps */
+		.key = "qcom,max-hq-frames-per-sec",
+		.value = 30,
 	},
 	{
 		.key = "qcom,max-b-frame-size",
@@ -370,7 +223,14 @@ static struct msm_vidc_common_data sm8150_common_data[] = {
 	},
 	{
 		.key = "qcom,max-secure-instances",
-		.value = 3,
+		.value = 2,             /*
+					 * As per design driver allows 3rd
+					 * instance as well since the secure
+					 * flags were updated later for the
+					 * current instance. Hence total
+					 * secure sessions would be
+					 * max-secure-instances + 1.
+					 */
 	},
 	{
 		.key = "qcom,max-hw-load",
@@ -386,8 +246,8 @@ static struct msm_vidc_common_data sm8150_common_data[] = {
 		.value = 8160,
 	},
 	{
-		.key = "qcom,max-hq-mbs-per-sec",
-		.value = 244800,  /* 1920 x 1088 @ 30 fps */
+		.key = "qcom,max-hq-frames-per-sec",
+		.value = 60,
 	},
 	{
 		.key = "qcom,max-b-frame-size",
@@ -446,7 +306,14 @@ static struct msm_vidc_common_data sdmmagpie_common_data_v0[] = {
 	},
 	{
 		.key = "qcom,max-secure-instances",
-		.value = 3,
+		.value = 2,             /*
+					 * As per design driver allows 3rd
+					 * instance as well since the secure
+					 * flags were updated later for the
+					 * current instance. Hence total
+					 * secure sessions would be
+					 * max-secure-instances + 1.
+					 */
 	},
 	{
 		.key = "qcom,max-hw-load",
@@ -457,8 +324,8 @@ static struct msm_vidc_common_data sdmmagpie_common_data_v0[] = {
 		.value = 8160,
 	},
 	{
-		.key = "qcom,max-hq-mbs-per-sec",
-		.value = 244800,  /* 1920 x 1088 @ 30 fps */
+		.key = "qcom,max-hq-frames-per-sec",
+		.value = 60,
 	},
 	{
 		.key = "qcom,max-b-frame-size",
@@ -517,7 +384,14 @@ static struct msm_vidc_common_data sdmmagpie_common_data_v1[] = {
 	},
 	{
 		.key = "qcom,max-secure-instances",
-		.value = 3,
+		.value = 2,             /*
+					 * As per design driver allows 3rd
+					 * instance as well since the secure
+					 * flags were updated later for the
+					 * current instance. Hence total
+					 * secure sessions would be
+					 * max-secure-instances + 1.
+					 */
 	},
 	{
 		.key = "qcom,max-hw-load",
@@ -528,8 +402,8 @@ static struct msm_vidc_common_data sdmmagpie_common_data_v1[] = {
 		.value = 8160,
 	},
 	{
-		.key = "qcom,max-hq-mbs-per-sec",
-		.value = 244800,  /* 1920 x 1088 @ 30 fps */
+		.key = "qcom,max-hq-frames-per-sec",
+		.value = 60,
 	},
 	{
 		.key = "qcom,max-b-frame-size",
@@ -592,7 +466,7 @@ static struct msm_vidc_common_data sdm845_common_data[] = {
 	},
 	{
 		.key = "qcom,max-secure-instances",
-		.value = 3,
+		.value = 5,
 	},
 	{
 		.key = "qcom,max-hw-load",
@@ -603,8 +477,8 @@ static struct msm_vidc_common_data sdm845_common_data[] = {
 		.value = 8160,
 	},
 	{
-		.key = "qcom,max-hq-mbs-per-sec",
-		.value = 244800,  /* 1920 x 1088 @ 30 fps */
+		.key = "qcom,max-hq-frames-per-sec",
+		.value = 60,
 	},
 	{
 		.key = "qcom,max-b-frame-size",
@@ -647,7 +521,7 @@ static struct msm_vidc_common_data sdm670_common_data_v0[] = {
 	},
 	{
 		.key = "qcom,max-secure-instances",
-		.value = 6,
+		.value = 5,
 	},
 	{
 		.key = "qcom,max-hw-load",
@@ -658,8 +532,8 @@ static struct msm_vidc_common_data sdm670_common_data_v0[] = {
 		.value = 8160,
 	},
 	{
-		.key = "qcom,max-hq-mbs-per-sec",
-		.value = 244800,  /* 1920 x 1088 @ 30 fps */
+		.key = "qcom,max-hq-frames-per-sec",
+		.value = 60,
 	},
 	{
 		.key = "qcom,max-b-frame-size",
@@ -698,7 +572,7 @@ static struct msm_vidc_common_data sdm670_common_data_v1[] = {
 	},
 	{
 		.key = "qcom,max-secure-instances",
-		.value = 6,
+		.value = 5,
 	},
 	{
 		.key = "qcom,max-hw-load",
@@ -709,8 +583,8 @@ static struct msm_vidc_common_data sdm670_common_data_v1[] = {
 		.value = 8160,
 	},
 	{
-		.key = "qcom,max-hq-mbs-per-sec",
-		.value = 244800,  /* 1920 x 1088 @ 30 fps */
+		.key = "qcom,max-hq-frames-per-sec",
+		.value = 60,
 	},
 	{
 		.key = "qcom,max-b-frame-size",
@@ -742,40 +616,20 @@ static struct msm_vidc_efuse_data sdmmagpie_efuse_data[] = {
 	EFUSE_ENTRY(0x00786018, 4, 0x00000400, 0x0a, SKU_VERSION),
 };
 
-static struct msm_vidc_ubwc_config trinket_ubwc_data[] = {
-	UBWC_CONFIG(0, 1, 0, 0, 0, 64, 0, 0),
-};
-
 static struct msm_vidc_platform_data default_data = {
 	.codec_data = default_codec_data,
 	.codec_data_length =  ARRAY_SIZE(default_codec_data),
 	.common_data = default_common_data,
 	.common_data_length =  ARRAY_SIZE(default_common_data),
-	.ubwc_config = 0,
-	.ubwc_config_length = 0,
 	.csc_data.vpe_csc_custom_bias_coeff = vpe_csc_custom_bias_coeff,
 	.csc_data.vpe_csc_custom_matrix_coeff = vpe_csc_custom_matrix_coeff,
 	.csc_data.vpe_csc_custom_limit_coeff = vpe_csc_custom_limit_coeff,
 	.efuse_data = NULL,
 	.efuse_data_length = 0,
 	.sku_version = 0,
+	.gcc_register_base = 0,
+	.gcc_register_size = 0,
 	.vpu_ver = VPU_VERSION_5,
-};
-
-static struct msm_vidc_platform_data atoll_data = {
-	.codec_data = atoll_codec_data,
-	.codec_data_length =  ARRAY_SIZE(atoll_codec_data),
-	.common_data = atoll_common_data,
-	.common_data_length =  ARRAY_SIZE(atoll_common_data),
-	.ubwc_config = NULL,
-	.ubwc_config_length = 0,
-	.csc_data.vpe_csc_custom_bias_coeff = vpe_csc_custom_bias_coeff,
-	.csc_data.vpe_csc_custom_matrix_coeff = vpe_csc_custom_matrix_coeff,
-	.csc_data.vpe_csc_custom_limit_coeff = vpe_csc_custom_limit_coeff,
-	.efuse_data = NULL,
-	.efuse_data_length = 0,
-	.sku_version = 0,
-	.vpu_ver = VPU_VERSION_4,
 };
 
 static struct msm_vidc_platform_data sm6150_data = {
@@ -783,30 +637,14 @@ static struct msm_vidc_platform_data sm6150_data = {
 	.codec_data_length =  ARRAY_SIZE(sm6150_codec_data),
 	.common_data = sm6150_common_data,
 	.common_data_length =  ARRAY_SIZE(sm6150_common_data),
-	.ubwc_config = 0,
-	.ubwc_config_length = 0,
 	.csc_data.vpe_csc_custom_bias_coeff = vpe_csc_custom_bias_coeff,
 	.csc_data.vpe_csc_custom_matrix_coeff = vpe_csc_custom_matrix_coeff,
 	.csc_data.vpe_csc_custom_limit_coeff = vpe_csc_custom_limit_coeff,
 	.efuse_data = NULL,
 	.efuse_data_length = 0,
 	.sku_version = 0,
-	.vpu_ver = VPU_VERSION_4,
-};
-
-static struct msm_vidc_platform_data trinket_data = {
-	.codec_data = trinket_codec_data,
-	.codec_data_length =  ARRAY_SIZE(trinket_codec_data),
-	.common_data = trinket_common_data,
-	.common_data_length =  ARRAY_SIZE(trinket_common_data),
-	.ubwc_config = trinket_ubwc_data,
-	.ubwc_config_length = ARRAY_SIZE(trinket_ubwc_data),
-	.csc_data.vpe_csc_custom_bias_coeff = vpe_csc_custom_bias_coeff,
-	.csc_data.vpe_csc_custom_matrix_coeff = vpe_csc_custom_matrix_coeff,
-	.csc_data.vpe_csc_custom_limit_coeff = vpe_csc_custom_limit_coeff,
-	.efuse_data = NULL,
-	.efuse_data_length = 0,
-	.sku_version = 0,
+	.gcc_register_base = 0,
+	.gcc_register_size = 0,
 	.vpu_ver = VPU_VERSION_4,
 };
 
@@ -815,14 +653,14 @@ static struct msm_vidc_platform_data sm8150_data = {
 	.codec_data_length =  ARRAY_SIZE(sm8150_codec_data),
 	.common_data = sm8150_common_data,
 	.common_data_length =  ARRAY_SIZE(sm8150_common_data),
-	.ubwc_config = 0,
-	.ubwc_config_length = 0,
 	.csc_data.vpe_csc_custom_bias_coeff = vpe_csc_custom_bias_coeff,
 	.csc_data.vpe_csc_custom_matrix_coeff = vpe_csc_custom_matrix_coeff,
 	.csc_data.vpe_csc_custom_limit_coeff = vpe_csc_custom_limit_coeff,
 	.efuse_data = NULL,
 	.efuse_data_length = 0,
 	.sku_version = 0,
+	.gcc_register_base = GCC_VIDEO_AXI_REG_START_ADDR,
+	.gcc_register_size = GCC_VIDEO_AXI_REG_SIZE,
 	.vpu_ver = VPU_VERSION_5,
 };
 
@@ -831,14 +669,14 @@ static struct msm_vidc_platform_data sdmmagpie_data = {
 	.codec_data_length =  ARRAY_SIZE(sdmmagpie_codec_data),
 	.common_data = sdmmagpie_common_data_v0,
 	.common_data_length =  ARRAY_SIZE(sdmmagpie_common_data_v0),
-	.ubwc_config = 0,
-	.ubwc_config_length = 0,
 	.csc_data.vpe_csc_custom_bias_coeff = vpe_csc_custom_bias_coeff,
 	.csc_data.vpe_csc_custom_matrix_coeff = vpe_csc_custom_matrix_coeff,
 	.csc_data.vpe_csc_custom_limit_coeff = vpe_csc_custom_limit_coeff,
 	.efuse_data = sdmmagpie_efuse_data,
 	.efuse_data_length = ARRAY_SIZE(sdmmagpie_efuse_data),
 	.sku_version = 0,
+	.gcc_register_base = GCC_VIDEO_AXI_REG_START_ADDR,
+	.gcc_register_size = GCC_VIDEO_AXI_REG_SIZE,
 	.vpu_ver = VPU_VERSION_5,
 };
 
@@ -847,14 +685,14 @@ static struct msm_vidc_platform_data sdm845_data = {
 	.codec_data_length =  ARRAY_SIZE(sdm845_codec_data),
 	.common_data = sdm845_common_data,
 	.common_data_length =  ARRAY_SIZE(sdm845_common_data),
-	.ubwc_config = 0,
-	.ubwc_config_length = 0,
 	.csc_data.vpe_csc_custom_bias_coeff = vpe_csc_custom_bias_coeff,
 	.csc_data.vpe_csc_custom_matrix_coeff = vpe_csc_custom_matrix_coeff,
 	.csc_data.vpe_csc_custom_limit_coeff = vpe_csc_custom_limit_coeff,
 	.efuse_data = NULL,
 	.efuse_data_length = 0,
 	.sku_version = 0,
+	.gcc_register_base = 0,
+	.gcc_register_size = 0,
 	.vpu_ver = VPU_VERSION_4,
 };
 
@@ -863,29 +701,21 @@ static struct msm_vidc_platform_data sdm670_data = {
 	.codec_data_length =  ARRAY_SIZE(sdm670_codec_data),
 	.common_data = sdm670_common_data_v0,
 	.common_data_length =  ARRAY_SIZE(sdm670_common_data_v0),
-	.ubwc_config = 0,
-	.ubwc_config_length = 0,
 	.csc_data.vpe_csc_custom_bias_coeff = vpe_csc_custom_bias_coeff,
 	.csc_data.vpe_csc_custom_matrix_coeff = vpe_csc_custom_matrix_coeff,
 	.csc_data.vpe_csc_custom_limit_coeff = vpe_csc_custom_limit_coeff,
 	.efuse_data = sdm670_efuse_data,
 	.efuse_data_length = ARRAY_SIZE(sdm670_efuse_data),
 	.sku_version = 0,
+	.gcc_register_base = 0,
+	.gcc_register_size = 0,
 	.vpu_ver = VPU_VERSION_4,
 };
 
 static const struct of_device_id msm_vidc_dt_match[] = {
 	{
-		.compatible = "qcom,atoll-vidc",
-		.data = &atoll_data,
-	},
-	{
 		.compatible = "qcom,sm6150-vidc",
 		.data = &sm6150_data,
-	},
-	{
-		.compatible = "qcom,trinket-vidc",
-		.data = &trinket_data,
 	},
 	{
 		.compatible = "qcom,sm8150-vidc",

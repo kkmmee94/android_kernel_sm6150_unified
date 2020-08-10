@@ -18,9 +18,6 @@
 #include <drm/drm_mipi_dsi.h>
 #include "msm_drv.h"
 
-#define MAX_EXT_BRIDGE_PORT_CONFIG             16
-#define MAX_DSI_CTRLS_PER_DISPLAY             2
-
 #define DSI_H_TOTAL(t) (((t)->h_active) + ((t)->h_back_porch) + \
 			((t)->h_sync_width) + ((t)->h_front_porch))
 
@@ -36,16 +33,6 @@
 			value = (t)->h_active;\
 		value = value + (t)->h_back_porch + (t)->h_sync_width +\
 			(t)->h_front_porch;\
-		value;\
-	})
-
-#define DSI_H_ACTIVE_DSC(t) \
-	({\
-		u64 value;\
-		if ((t)->dsc_enabled && (t)->dsc)\
-			value = (t)->dsc->pclk_per_line;\
-		else\
-			value = (t)->h_active;\
 		value;\
 	})
 
@@ -464,16 +451,8 @@ enum dsi_cmd_set_type {
 	TX_SELF_MASK_ON,
 	TX_SELF_MASK_ON_FACTORY,
 	TX_SELF_MASK_OFF,
-	TX_SELF_MASK_GREEN_CIRCLE_ON,
-	TX_SELF_MASK_GREEN_CIRCLE_OFF,
-	TX_SELF_MASK_GREEN_CIRCLE_ON_FACTORY,
-	TX_SELF_MASK_GREEN_CIRCLE_OFF_FACTORY,
-	TX_SELF_MASK_CHECK_PRE1,
-	TX_SELF_MASK_CHECK_PRE2,
-	TX_SELF_MASK_CHECK_POST,
 	TX_SELF_MASK_IMAGE,
-	TX_SELF_MASK_IMAGE_CRC,
-	TX_SELF_ICON_SET_PRE,//189
+	TX_SELF_ICON_SET_PRE,//185
 	TX_SELF_ICON_SET_POST,
 	TX_SELF_ICON_SIDE_MEM_SET,
 	TX_SELF_ICON_GRID,
@@ -483,7 +462,7 @@ enum dsi_cmd_set_type {
 	TX_SELF_ICON_OFF_GRID_ON,
 	TX_SELF_ICON_OFF_GRID_OFF,
 	TX_SELF_ICON_GRID_2C_SYNC_OFF,
-	TX_SELF_ICON_OFF,//199
+	TX_SELF_ICON_OFF,//195
 	TX_SELF_ICON_IMAGE,
 	TX_SELF_BRIGHTNESS_ICON_ON,
 	TX_SELF_BRIGHTNESS_ICON_OFF,
@@ -493,7 +472,7 @@ enum dsi_cmd_set_type {
 	TX_SELF_ACLOCK_ON,
 	TX_SELF_ACLOCK_TIME_UPDATE,
 	TX_SELF_ACLOCK_ROTATION,
-	TX_SELF_ACLOCK_OFF,//209
+	TX_SELF_ACLOCK_OFF,//205
 	TX_SELF_ACLOCK_HIDE,
 	TX_SELF_ACLOCK_IMAGE,
 	TX_SELF_DCLOCK_SET_PRE,
@@ -503,7 +482,7 @@ enum dsi_cmd_set_type {
 	TX_SELF_DCLOCK_BLINKING_ON,
 	TX_SELF_DCLOCK_BLINKING_OFF,
 	TX_SELF_DCLOCK_TIME_UPDATE,
-	TX_SELF_DCLOCK_OFF,//219
+	TX_SELF_DCLOCK_OFF,//215
 	TX_SELF_DCLOCK_HIDE,
 	TX_SELF_DCLOCK_IMAGE,
 	TX_SELF_CLOCK_2C_SYNC_OFF,
@@ -513,23 +492,23 @@ enum dsi_cmd_set_type {
 	TX_SELF_VIDEO_OFF,
 	TX_SELF_PARTIAL_HLPM_SCAN_SET,
 	RX_SELF_DISP_DEBUG,
-	TX_SELF_DISP_CMD_END, //229
+	TX_SELF_DISP_CMD_END, //225
 
 	/* FLASH GAMMA */
-	TX_FLASH_GAMMA_PRE1,//230
+	TX_FLASH_GAMMA_PRE1,//226
 	TX_FLASH_GAMMA_PRE2,
 	TX_FLASH_GAMMA,
 	TX_FLASH_GAMMA_POST,
 
-	TX_ISC_DATA_THRESHOLD,//234
+	TX_ISC_DATA_THRESHOLD,//230
 	TX_STM_ENABLE,
 	TX_STM_DISABLE,
 	TX_GAMMA_MODE1_INTERPOLATION,
 
-	TX_SPI_IF_SEL_ON,//239
+	TX_SPI_IF_SEL_ON,//235
 	TX_SPI_IF_SEL_OFF,
 
-	TX_CCD_ON,//241
+	TX_CCD_ON,//237
 	TX_CCD_OFF,
 	TX_POC_COMP,
 
@@ -576,7 +555,6 @@ enum dsi_cmd_set_type {
 	RX_MCD_READ_RESISTANCE,  /* For read real MCD R/L resistance */
 	RX_FLASH_GAMMA,
 	RX_CCD_STATE,
-	RX_SELF_MASK_CHECK,
 	RX_CMD_END,
 
 	SS_DSI_CMD_SET_MAX,
@@ -701,7 +679,6 @@ struct dsi_panel_cmd_set {
  * @clk_rate_hz:      DSI bit clock rate per lane in Hz.
  * @mdp_transfer_time_us:   Specifies the mdp transfer time for command mode
  *                    panels in microseconds.
- * @overlap_pixels:   overlap pixels for certain panels.
  * @dsc_enabled:      DSC compression enabled.
  * @dsc:              DSC compression configuration.
  * @roi_caps:         Panel ROI capabilities.
@@ -723,7 +700,6 @@ struct dsi_mode_info {
 	u32 refresh_rate;
 	u64 clk_rate_hz;
 	u32 mdp_transfer_time_us;
-	u32 overlap_pixels;
 	bool dsc_enabled;
 	struct msm_display_dsc_info *dsc;
 	struct msm_roi_caps roi_caps;
@@ -764,9 +740,7 @@ struct dsi_split_link_config {
  * @ignore_rx_eot:       Ignore Rx EOT packets if set to true.
  * @append_tx_eot:       Append EOT packets for forward transmissions if set to
  *                       true.
- * @ext_bridge_num:      Connected external bridge count.
- * @ext_bridge_map:      External bridge config reg needs to match with the port
- *                       reg config.
+ * @ext_bridge_mode:     External bridge is connected.
  * @force_hs_clk_lane:   Send continuous clock to the panel.
  * @dsi_split_link_config:  Split Link Configuration.
  */
@@ -787,8 +761,7 @@ struct dsi_host_common_cfg {
 	u32 t_clk_pre;
 	bool ignore_rx_eot;
 	bool append_tx_eot;
-	u32 ext_bridge_num;
-	u32 ext_bridge_map[MAX_DSI_CTRLS_PER_DISPLAY];
+	bool ext_bridge_mode;
 	bool force_hs_clk_lane;
 	struct dsi_split_link_config split_link;
 };
@@ -877,7 +850,6 @@ struct dsi_host_config {
  * @mdp_transfer_time_us:   Specifies the mdp transfer time for command mode
  *                          panels in microseconds.
  * @clk_rate_hz:          DSI bit clock per lane in hz.
- * @overlap_pixels:       overlap pixels for certain panels.
  * @topology:             Topology selected for the panel
  * @dsc:                  DSC compression info
  * @dsc_enabled:          DSC compression enabled
@@ -894,7 +866,6 @@ struct dsi_display_mode_priv_info {
 	u32 panel_prefill_lines;
 	u32 mdp_transfer_time_us;
 	u64 clk_rate_hz;
-	u32 overlap_pixels;
 
 	struct msm_display_topology topology;
 	struct msm_display_dsc_info dsc;

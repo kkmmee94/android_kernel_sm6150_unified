@@ -7,22 +7,17 @@
 
 ssize_t	uh_log_read(struct file *filep, char __user *buf, size_t size, loff_t *offset)
 {
-	static size_t log_buf_size;
+	size_t log_buf_size;
 	unsigned long *log_addr = 0;
 
 	if (!strcmp(filep->f_path.dentry->d_iname, "uh_log")) {
+		log_buf_size = UH_LOG_SIZE;
 		log_addr = (unsigned long *)phys_to_virt(UH_LOG_START);
 	} else
-		return -EINVAL;
-
-	if(!*offset){
-		log_buf_size = 0;
-		while(((char *)log_addr)[log_buf_size] != 0 && log_buf_size != UH_LOG_SIZE)
-			log_buf_size++;
-	}
+		return -1;
 
 	if (*offset >= log_buf_size)
-		return 0;
+		return -EINVAL;
 
 	if (*offset + size > log_buf_size)
 		size = log_buf_size - *offset;
@@ -60,4 +55,3 @@ static void __exit uh_log_exit(void)
 
 module_init(uh_log_init);
 module_exit(uh_log_exit);
-

@@ -1588,7 +1588,7 @@ static int ctnetlink_change_timeout(struct nf_conn *ct,
 #if defined(CONFIG_IP_NF_TARGET_NATTYPE_MODULE)
 	nattype_ref_timer = rcu_dereference(nattype_refresh_timer);
 	if (nattype_ref_timer)
-		nattype_ref_timer(ct->nattype_entry, ct->timeout);
+		nattype_ref_timer(ct->nattype_entry, ct->timeout.expires);
 #endif
 	return 0;
 }

@@ -24,28 +24,10 @@ fw-external-y := $(subst $(quote),,$(CONFIG_EXTRA_FIRMWARE))
 # But be aware that the config file might not be included at all.
 
 fw-external-$(CONFIG_TOUCHSCREEN_IST40XX) += tsp_imagis/ist40xx_r1.bin tsp_imagis/ist40xx_r1_cmcs.bin \
-						tsp_imagis/ist40xx_a70.bin tsp_imagis/ist40xx_a70_cmcs.bin tsp_imagis/ist40xx_a70s.bin tsp_imagis/ist40xx_a70s_cmcs.bin
-						
-fw-external-$(CONFIG_TOUCHSCREEN_MELFAS_MSS100) += tsp_melfas/mss100_a70s.bin
-
-fw-external-$(CONFIG_TOUCHSCREEN_SEC_TS_Y771) += tsp_sec/y771_a71.bin tsp_sec/y771_a71_1l.bin
-
-ifdef CONFIG_SEC_A70Q_PROJECT
-ifdef CONFIG_SEC_A70Q_USA_PROJECT
-fw-external-$(CONFIG_SENSORS_A96T3X6) += abov/a96t346_a70q_usa.bin
-fw-external-$(CONFIG_SENSORS_A96T3X6_SUB) += abov/a96t346_a70q_sub_usa.bin
-else
+						tsp_imagis/ist40xx_a70.bin tsp_imagis/ist40xx_a70_cmcs.bin
 fw-external-$(CONFIG_SENSORS_A96T3X6) += abov/a96t346_a70q_eur.bin
-endif
-else ifdef CONFIG_SEC_A70SQ_PROJECT
-fw-external-$(CONFIG_SENSORS_A96T3X6) += abov/a96t356_a70sq.bin
-fw-external-$(CONFIG_SENSORS_A96T3X6_SUB) += abov/a96t356_a70sq_sub.bin
-else ifdef CONFIG_SEC_A71_PROJECT
-fw-external-$(CONFIG_SENSORS_A96T3X6) += abov/a96t356_a71.bin
-fw-external-$(CONFIG_SENSORS_A96T3X6_SUB) += abov/a96t356_a71_sub.bin
-endif
 
-fw-external-$(CONFIG_TOUCHSCREEN_NOVATEK_NT36672) += tsp_novatek/nt36672_a60.bin tsp_novatek/nt36672_m40.bin \
+fw-external-$(CONFIG_TOUCHSCREEN_NOVATEK_NT36672) += tsp_novatek/nt36672_a60.bin \
 						tsp_novatek/nt36672_a60_tianma.bin
 
 #touch based grip sensor
@@ -151,8 +133,5 @@ targets := $(fw-shipped-) $(patsubst $(obj)/%,%, \
 # Without this, built-in.o won't be created when it's empty, and the
 # final vmlinux link will fail.
 obj- := dummy
-
-# SPU signature verify
-obj-y += spu_verify/
 
 hostprogs-y := ihex2fw

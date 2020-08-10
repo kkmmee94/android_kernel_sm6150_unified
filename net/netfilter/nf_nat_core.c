@@ -97,8 +97,7 @@ int nf_xfrm_me_harder(struct net *net, struct sk_buff *skb, unsigned int family)
 	dst = skb_dst(skb);
 	if (dst->xfrm)
 		dst = ((struct xfrm_dst *)dst)->route;
-	if (!dst_hold_safe(dst))
-		return -EHOSTUNREACH;
+	dst_hold(dst);
 
 	dst = xfrm_lookup(net, dst, &fl, skb->sk, 0);
 	if (IS_ERR(dst))

@@ -37,7 +37,6 @@
 #include <linux/irqchip/chained_irq.h>
 #include <linux/microchipphy.h>
 #include <linux/phy.h>
-#include <linux/of_net.h>
 #include "lan78xx.h"
 
 #define DRIVER_AUTHOR	"WOOJUNG HUH <woojung.huh@microchip.com>"
@@ -923,9 +922,11 @@ static int lan78xx_read_otp(struct lan78xx_net *dev, u32 offset,
 	ret = lan78xx_read_raw_otp(dev, 0, 1, &sig);
 
 	if (ret == 0) {
-		if (sig == OTP_INDICATOR_2)
+		if (sig == OTP_INDICATOR_1)
+			offset = offset;
+		else if (sig == OTP_INDICATOR_2)
 			offset += 0x100;
-		else if (sig != OTP_INDICATOR_1)
+		else
 			ret = -EINVAL;
 		if (!ret)
 			ret = lan78xx_read_raw_otp(dev, offset, length, data);
@@ -1644,31 +1645,34 @@ static void lan78xx_init_mac_address(struct lan78xx_net *dev)
 	addr[5] = (addr_hi >> 8) & 0xFF;
 
 	if (!is_valid_ether_addr(addr)) {
-		if (!eth_platform_get_mac_address(&dev->udev->dev, addr)) {
-			/* valid address present in Device Tree */
-			netif_dbg(dev, ifup, dev->net,
-				  "MAC address read from Device Tree");
-		} else if (((lan78xx_read_eeprom(dev, EEPROM_MAC_OFFSET,
-						 ETH_ALEN, addr) == 0) ||
-			    (lan78xx_read_otp(dev, EEPROM_MAC_OFFSET,
-					      ETH_ALEN, addr) == 0)) &&
-			   is_valid_ether_addr(addr)) {
-			/* eeprom values are valid so use them */
-			netif_dbg(dev, ifup, dev->net,
-				  "MAC address read from EEPROM");
+		/* reading mac address from EEPROM or OTP */
+		if ((lan78xx_read_eeprom(dev, EEPROM_MAC_OFFSET, ETH_ALEN,
+					 addr) == 0) ||
+		    (lan78xx_read_otp(dev, EEPROM_MAC_OFFSET, ETH_ALEN,
+				      addr) == 0)) {
+			if (is_valid_ether_addr(addr)) {
+				/* eeprom values are valid so use them */
+				netif_dbg(dev, ifup, dev->net,
+					  "MAC address read from EEPROM");
+			} else {
+				/* generate random MAC */
+				random_ether_addr(addr);
+				netif_dbg(dev, ifup, dev->net,
+					  "MAC address set to random addr");
+			}
+
+			addr_lo = addr[0] | (addr[1] << 8) |
+				  (addr[2] << 16) | (addr[3] << 24);
+			addr_hi = addr[4] | (addr[5] << 8);
+
+			ret = lan78xx_write_reg(dev, RX_ADDRL, addr_lo);
+			ret = lan78xx_write_reg(dev, RX_ADDRH, addr_hi);
 		} else {
 			/* generate random MAC */
 			random_ether_addr(addr);
 			netif_dbg(dev, ifup, dev->net,
 				  "MAC address set to random addr");
 		}
-
-		addr_lo = addr[0] | (addr[1] << 8) |
-			  (addr[2] << 16) | (addr[3] << 24);
-		addr_hi = addr[4] | (addr[5] << 8);
-
-		ret = lan78xx_write_reg(dev, RX_ADDRL, addr_lo);
-		ret = lan78xx_write_reg(dev, RX_ADDRH, addr_hi);
 	}
 
 	ret = lan78xx_write_reg(dev, MAF_LO(0), addr_lo);
@@ -2209,10 +2213,6 @@ static int lan78xx_set_mac_addr(struct net_device *netdev, void *p)
 
 	ret = lan78xx_write_reg(dev, RX_ADDRL, addr_lo);
 	ret = lan78xx_write_reg(dev, RX_ADDRH, addr_hi);
-
-	/* Added to support MAC address changes */
-	ret = lan78xx_write_reg(dev, MAF_LO(0), addr_lo);
-	ret = lan78xx_write_reg(dev, MAF_HI(0), addr_hi | MAF_HI_VALID_);
 
 	return 0;
 }
@@ -2816,11 +2816,6 @@ static int lan78xx_bind(struct lan78xx_net *dev, struct usb_interface *intf)
 	int i;
 
 	ret = lan78xx_get_endpoints(dev, intf);
-	if (ret) {
-		netdev_warn(dev->net, "lan78xx_get_endpoints failed: %d\n",
-			    ret);
-		return ret;
-	}
 
 	dev->data[0] = (unsigned long)kzalloc(sizeof(*pdata), GFP_KERNEL);
 
@@ -3192,9 +3187,9 @@ static void lan78xx_tx_bh(struct lan78xx_net *dev)
 	count = 0;
 	length = 0;
 	spin_lock_irqsave(&tqp->lock, flags);
-	skb_queue_walk(tqp, skb) {
+	for (skb = tqp->next; pkt_cnt < tqp->qlen; skb = skb->next) {
 		if (skb_is_gso(skb)) {
-			if (!skb_queue_is_first(tqp, skb)) {
+			if (pkt_cnt) {
 				/* handle previous packets first */
 				break;
 			}
@@ -3605,6 +3600,7 @@ static int lan78xx_probe(struct usb_interface *intf,
 	ret = lan78xx_bind(dev, intf);
 	if (ret < 0)
 		goto out2;
+	strcpy(netdev->name, "eth%d");
 
 	if (netdev->mtu > (dev->hard_mtu - netdev->hard_header_len))
 		netdev->mtu = dev->hard_mtu - netdev->hard_header_len;

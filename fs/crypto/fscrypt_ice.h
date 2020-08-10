@@ -16,13 +16,13 @@
 #include <linux/blkdev.h>
 #include "fscrypt_private.h"
 
-#ifdef CONFIG_FS_INLINE_ENCRYPTION
+#if IS_ENABLED(CONFIG_FS_ENCRYPTION)
 #define FS_AES_256_XTS_KEY_SIZE 64
 static inline bool fscrypt_should_be_processed_by_ice(const struct inode *inode)
 {
 	if (!inode->i_sb->s_cop)
 		return 0;
-	if (!IS_ENCRYPTED((struct inode *)inode))
+	if (!inode->i_sb->s_cop->is_encrypted((struct inode *)inode))
 		return 0;
 
 	return fscrypt_using_hardware_encryption(inode);

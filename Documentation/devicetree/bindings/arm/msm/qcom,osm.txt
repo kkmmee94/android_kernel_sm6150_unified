@@ -11,9 +11,7 @@ Properties:
 	Value type: <string>
 	Definition: must be "qcom,clk-cpu-osm" or "qcom,clk-cpu-osm-sdmshrike"
 			or "qcom,clk-cpu-osm-sm6150" or
-			"qcom,clk-cpu-osm-sdmmagpie" or
-			"qcom,clk-cpu-osm-trinket" or
-			"qcom,clk-cpu-osm-atoll".
+			"qcom,clk-cpu-osm-sdmmagpie".
 
 - reg
 	Usage:      required

@@ -2542,11 +2542,6 @@ static int cam_ife_mgr_pause_hw(struct cam_ife_hw_mgr_ctx *ctx)
 	return cam_ife_mgr_bw_control(ctx, CAM_VFE_BW_CONTROL_EXCLUDE);
 }
 
-static int cam_ife_mgr_resume_hw(struct cam_ife_hw_mgr_ctx *ctx)
-{
-	return cam_ife_mgr_bw_control(ctx, CAM_VFE_BW_CONTROL_INCLUDE);
-}
-
 /* entry function: stop_hw */
 static int cam_ife_mgr_stop_hw(void *hw_mgr_priv, void *stop_hw_args)
 {
@@ -2900,9 +2895,6 @@ start_only:
 
 	CAM_DBG(CAM_ISP, "START IFE OUT ... in ctx id:%d",
 		ctx->ctx_index);
-	if (start_isp->start_only)
-		cam_ife_mgr_resume_hw(ctx);
-
 	/* start the IFE out devices */
 	for (i = 0; i < CAM_IFE_HW_OUT_RES_MAX; i++) {
 		rc = cam_ife_hw_mgr_start_hw_res(
@@ -3000,44 +2992,6 @@ static int cam_ife_mgr_read(void *hw_mgr_priv, void *read_args)
 static int cam_ife_mgr_write(void *hw_mgr_priv, void *write_args)
 {
 	return -EPERM;
-}
-
-static int cam_ife_mgr_reset(void *hw_mgr_priv, void *hw_reset_args)
-{
-	struct cam_ife_hw_mgr            *hw_mgr       = hw_mgr_priv;
-	struct cam_hw_reset_args         *reset_args = hw_reset_args;
-	struct cam_ife_hw_mgr_ctx        *ctx;
-	struct cam_ife_hw_mgr_res        *hw_mgr_res;
-	uint32_t                          i;
-	int                               rc = 0;
-
-	if (!hw_mgr_priv || !hw_reset_args) {
-		CAM_ERR(CAM_ISP, "Invalid arguments");
-		return -EINVAL;
-	}
-
-	ctx = (struct cam_ife_hw_mgr_ctx *)reset_args->ctxt_to_hw_map;
-	if (!ctx || !ctx->ctx_in_use) {
-		CAM_ERR(CAM_ISP, "Invalid context is used");
-		return -EPERM;
-	}
-
-	CAM_DBG(CAM_ISP, "reset csid and vfe hw");
-	list_for_each_entry(hw_mgr_res, &ctx->res_list_ife_csid,
-		list) {
-		rc = cam_ife_hw_mgr_reset_csid_res(hw_mgr_res);
-		if (rc) {
-			CAM_ERR(CAM_ISP, "Failed RESET (%d) rc:%d",
-				hw_mgr_res->res_id, rc);
-			goto end;
-		}
-	}
-
-	for (i = 0; i < ctx->num_base; i++)
-		rc = cam_ife_mgr_reset_vfe_hw(hw_mgr, ctx->base[i].idx);
-
-end:
-	return rc;
 }
 
 static int cam_ife_mgr_release_hw(void *hw_mgr_priv,
@@ -3944,6 +3898,10 @@ end:
 	return rc;
 }
 
+static int cam_ife_mgr_resume_hw(struct cam_ife_hw_mgr_ctx *ctx)
+{
+	return cam_ife_mgr_bw_control(ctx, CAM_VFE_BW_CONTROL_INCLUDE);
+}
 
 static int cam_ife_mgr_sof_irq_debug(
 	struct cam_ife_hw_mgr_ctx *ctx,
@@ -4018,7 +3976,7 @@ static void cam_ife_mgr_print_io_bufs(struct cam_packet *packet,
 			if (pf_buf_info &&
 				GET_FD_FROM_HANDLE(io_cfg[i].mem_handle[j]) ==
 				GET_FD_FROM_HANDLE(pf_buf_info)) {
-				CAM_ERR(CAM_ISP,
+				CAM_INFO_RATE_LIMIT(CAM_ISP,
 					"Found PF at port: 0x%x mem 0x%x fd: 0x%x",
 					io_cfg[i].resource_type,
 					io_cfg[i].mem_handle[j],
@@ -4027,7 +3985,7 @@ static void cam_ife_mgr_print_io_bufs(struct cam_packet *packet,
 					*mem_found = true;
 			}
 
-			CAM_ERR(CAM_ISP,
+			CAM_INFO_RATE_LIMIT(CAM_ISP,
 				"port: 0x%x f: %u format: %d dir %d",
 				io_cfg[i].resource_type,
 				io_cfg[i].fence,
@@ -4051,7 +4009,7 @@ static void cam_ife_mgr_print_io_bufs(struct cam_packet *packet,
 				continue;
 			}
 
-			CAM_ERR(CAM_ISP,
+			CAM_INFO_RATE_LIMIT(CAM_ISP,
 				"pln %d w %d h %d s %u size 0x%x addr 0x%x end_addr 0x%x offset %x memh %x",
 				j, io_cfg[i].planes[j].width,
 				io_cfg[i].planes[j].height,
@@ -4721,14 +4679,12 @@ static int cam_ife_hw_mgr_check_irq_for_dual_vfe(
 		return 0;
 	}
 
-	CAM_QCLOGMINIMAL(CAM_ISP, "event_cnt[core_idx0]  = %u event_cnt[core_idx1]  = %u \n ",
-		          event_cnt[core_idx0],event_cnt[core_idx1]  );
 	if (event_cnt[core_idx0] ==
 			event_cnt[core_idx1]) {
 
 		event_cnt[core_idx0] = 0;
 		event_cnt[core_idx1] = 0;
-		CAM_QCLOGMINIMAL(CAM_ISP, "Count Match \n " );
+
 		rc = 0;
 		return rc;
 	}
@@ -5007,7 +4963,6 @@ static int cam_ife_hw_mgr_handle_sof(
 		if (ife_src_res->res_type == CAM_IFE_HW_MGR_RES_UNINIT)
 			continue;
 
-		CAM_QCLOGMINIMAL(CAM_ISP, "Enter Res id =  %u \n ",ife_src_res->res_id);
 		switch (ife_src_res->res_id) {
 		case CAM_ISP_HW_VFE_IN_RDI0:
 		case CAM_ISP_HW_VFE_IN_RDI1:
@@ -5288,7 +5243,6 @@ static int cam_ife_hw_mgr_handle_buf_done_for_hw_res(
 			if (buf_done_event_data.num_handles > 0 &&
 				ife_hwr_irq_wm_done_cb) {
 				CAM_DBG(CAM_ISP, "notify isp context");
-				trace_printk("notify isp context\n");
 				ife_hwr_irq_wm_done_cb(
 					ife_hwr_mgr_ctx->common.cb_priv,
 					CAM_ISP_HW_EVENT_DONE,
@@ -5308,7 +5262,8 @@ static int cam_ife_hw_mgr_handle_buf_done_for_hw_res(
 			break;
 		}
 		if (!buf_done_status)
-			trace_printk("buf_done status:(%d),out_res->res_id: 0x%x\n",
+			CAM_DBG(CAM_ISP,
+				"buf_done status:(%d),out_res->res_id: 0x%x",
 				buf_done_status, isp_ife_out_res->res_id);
 	}
 
@@ -5352,8 +5307,6 @@ int cam_ife_mgr_do_tasklet_buf_done(void *handler_priv,
 		evt_payload, evt_payload->core_index);
 	CAM_DBG(CAM_ISP, "bus_irq_status_0: = %x", evt_payload->irq_reg_val[0]);
 	CAM_DBG(CAM_ISP, "bus_irq_status_1: = %x", evt_payload->irq_reg_val[1]);
-	trace_printk("core %d bus_irq_status_1: = %x\n", evt_payload->core_index,
-		evt_payload->irq_reg_val[1]);
 	CAM_DBG(CAM_ISP, "bus_irq_status_2: = %x", evt_payload->irq_reg_val[2]);
 	CAM_DBG(CAM_ISP, "bus_irq_comp_err: = %x", evt_payload->irq_reg_val[3]);
 	CAM_DBG(CAM_ISP, "bus_irq_comp_owrt: = %x",
@@ -5386,9 +5339,7 @@ int cam_ife_mgr_do_tasklet(void *handler_priv, void *evt_payload_priv)
 		(void *)evt_payload,
 		evt_payload->core_index);
 	CAM_DBG(CAM_ISP, "irq_status_0: = %x", evt_payload->irq_reg_val[0]);
-	trace_printk("core %d irq_status_0: = %x\n", evt_payload->core_index, evt_payload->irq_reg_val[0]);
 	CAM_DBG(CAM_ISP, "irq_status_1: = %x", evt_payload->irq_reg_val[1]);
-	trace_printk("core %d irq_status_1: = %x\n", evt_payload->core_index, evt_payload->irq_reg_val[1]);
 	CAM_DBG(CAM_ISP, "Violation register: = %x",
 		evt_payload->irq_reg_val[2]);
 
@@ -5727,7 +5678,6 @@ int cam_ife_hw_mgr_init(struct cam_hw_mgr_intf *hw_mgr_intf, int *iommu_hdl)
 	hw_mgr_intf->hw_prepare_update = cam_ife_mgr_prepare_hw_update;
 	hw_mgr_intf->hw_config = cam_ife_mgr_config_hw;
 	hw_mgr_intf->hw_cmd = cam_ife_mgr_cmd;
-	hw_mgr_intf->hw_reset = cam_ife_mgr_reset;
 
 	if (iommu_hdl)
 		*iommu_hdl = g_ife_hw_mgr.mgr_common.img_iommu_hdl;

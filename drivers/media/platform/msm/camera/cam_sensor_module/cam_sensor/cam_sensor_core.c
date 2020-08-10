@@ -19,18 +19,12 @@
 #include "cam_common_util.h"
 #include "cam_packet_util.h"
 
-#if defined(CONFIG_LEDS_S2MU106_FLASH) || defined(CONFIG_LEDS_S2MU107_FLASH)
-extern int muic_afc_set_voltage(int vol);
-extern void pdo_ctrl_by_flash(bool mode);
-#endif
 
 #if defined(CONFIG_SAMSUNG_REAR_TOF) || defined(CONFIG_SAMSUNG_FRONT_TOF)
 struct cam_sensor_ctrl_t *g_s_ctrl_tof;
 int check_pd_ready;
 #endif
-#if defined(CONFIG_SEC_A71_PROJECT)
-extern char otp_info[5];
-#endif
+
 #if defined(CONFIG_USE_CAMERA_HW_BIG_DATA)
 //#define HWB_FILE_OPERATION 1
 uint32_t sec_sensor_position;
@@ -363,7 +357,7 @@ static int32_t cam_sensor_i2c_modes_util(
 				rc);
 			return rc;
 		}
-#if defined(CONFIG_SEC_A90Q_PROJECT) || defined(CONFIG_SEC_A71_PROJECT)
+#if defined(CONFIG_SEC_A90Q_PROJECT)
 		if ((i2c_list->i2c_settings.size > 0)
 			&& (i2c_list->i2c_settings.reg_setting[0].reg_addr == STREAM_ON_ADDR_IMX586_S5K4HA || i2c_list->i2c_settings.reg_setting[0].reg_addr == STREAM_ON_ADDR_IMX316)
 			&& (i2c_list->i2c_settings.reg_setting[0].reg_data == 0x0)) {
@@ -376,7 +370,7 @@ static int32_t cam_sensor_i2c_modes_util(
 					CAMERA_SENSOR_I2C_TYPE_WORD, CAMERA_SENSOR_I2C_TYPE_BYTE);
 				CAM_DBG(CAM_SENSOR, "retry cnt : %d, Stream off, frame_cnt : %x", retry_cnt, frame_cnt);
 				if (frame_cnt != 0xFF)
-				usleep_range(2000, 3000);
+					usleep_range(2000, 3000);
 				retry_cnt--;
 			} while (frame_cnt != 0xFF && retry_cnt > 0);
 			CAM_INFO(CAM_SENSOR, "Stream off end retry_cnt = %d", retry_cnt);
@@ -465,8 +459,6 @@ int32_t cam_sensor_update_slave_info(struct cam_cmd_probe *probe_info,
 		probe_info->expected_data;
 	s_ctrl->sensordata->slave_info.sensor_id_mask =
 		probe_info->data_mask;
-	s_ctrl->sensordata->slave_info.version_id =
-		probe_info->version_id;
 	/* Userspace passes the pipeline delay in reserved field */
 	s_ctrl->pipeline_delay =
 		probe_info->reserved;
@@ -741,7 +733,7 @@ int cam_sensor_match_id(struct cam_sensor_ctrl_t *s_ctrl)
             chipid >>= 4;
         }
 #endif
-#if defined(CONFIG_SEC_A60Q_PROJECT) || defined(CONFIG_SEC_M40_PROJECT)
+#if defined(CONFIG_SEC_A60Q_PROJECT)
 	usleep_range(200, 300);
 #endif
 	CAM_ERR(CAM_SENSOR, "read id: 0x%x expected id 0x%x:",
@@ -765,13 +757,6 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 #if defined(CONFIG_USE_CAMERA_HW_BIG_DATA)
 	struct cam_hw_param *hw_param = NULL;
 #endif
-
-#if defined(CONFIG_SEC_A71_PROJECT)
-	uint32_t version_id = 0;
-	uint16_t sensor_id = 0;
-	uint16_t expected_version_id = 0;
-#endif
-
 
 	if (!s_ctrl || !arg) {
 		CAM_ERR(CAM_SENSOR, "s_ctrl is NULL");
@@ -843,42 +828,6 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 			CAM_ERR(CAM_SENSOR, "power up failed");
 			goto free_power_settings;
 		}
-
-#if defined(CONFIG_SEC_A71_PROJECT)
-		if (s_ctrl->soc_info.index == 0) { // check Rear GW1
-			sensor_id = s_ctrl->sensordata->slave_info.sensor_id;
-			expected_version_id = s_ctrl->sensordata->slave_info.version_id;
-			rc = camera_io_dev_read(
-				&(s_ctrl->io_master_info),
-				0x0002, &version_id,
-				CAMERA_SENSOR_I2C_TYPE_WORD,
-				CAMERA_SENSOR_I2C_TYPE_WORD);
-			version_id>>=8;
-			if (rc < 0) {
-				CAM_ERR(CAM_SENSOR, "Read version id fail %d", rc);
-			} else {
-				CAM_INFO(CAM_SENSOR,
-					"Read version id 0x%x,expected_version_id 0x%x", version_id, expected_version_id);
-					if (version_id == expected_version_id && version_id == 0XA0)
-						CAM_INFO(CAM_SENSOR, "Found A0 Sensor");
-					else if (version_id == expected_version_id && version_id == 0XA1){
-						CAM_INFO(CAM_SENSOR, "Found A1 Sensor");
-						strlcpy(otp_info,"0", sizeof(otp_info));
-					}					
-
-					else if (version_id == expected_version_id && version_id == 0XA2){
-						CAM_INFO(CAM_SENSOR, "Found A2 Sensor");
-						strlcpy(otp_info,"1", sizeof(otp_info));
-					}
-					else {
-						CAM_INFO(CAM_SENSOR, "Not matched");
-						rc = -EINVAL;
-						cam_sensor_power_down(s_ctrl);
-						goto release_mutex;
-				}
-			}
-		}
-#endif
 
 		/* Match sensor ID */
 		rc = cam_sensor_match_id(s_ctrl);
@@ -1402,16 +1351,6 @@ int cam_sensor_power_up(struct cam_sensor_ctrl_t *s_ctrl)
 	struct cam_hw_param *hw_param = NULL;
 #endif
 
-// Added for PLM P191224-07745 (suggestion from sLSI PMIC team)
-// Set the PMIC voltage to 5V for Flash operation on Rear Sensor
-#if defined(CONFIG_LEDS_S2MU106_FLASH) || defined(CONFIG_LEDS_S2MU107_FLASH)
-	if(s_ctrl->soc_info.index == 0)
-	{
-		pdo_ctrl_by_flash(1);
-		muic_afc_set_voltage(5);
-	}
-#endif
-
 	if (!s_ctrl) {
 		CAM_ERR(CAM_SENSOR, "failed: %pK", s_ctrl);
 		return -EINVAL;
@@ -1545,9 +1484,7 @@ int cam_sensor_power_up(struct cam_sensor_ctrl_t *s_ctrl)
 		CAM_ERR(CAM_SENSOR, "power up the core is failed:%d", rc);
 		return rc;
 	}
-#if defined(CONFIG_MCLK_I2C_DELAY)
-    msleep(5); //Add delay for MCLK - I2C TIMING SPEC OUT issue in A71
-#endif
+
 	rc = camera_io_init(&(s_ctrl->io_master_info));
 	if (rc < 0)
 		CAM_ERR(CAM_SENSOR, "cci_init failed: rc: %d", rc);
@@ -1562,16 +1499,6 @@ int cam_sensor_power_down(struct cam_sensor_ctrl_t *s_ctrl)
 	int rc = 0;
 #if defined(CONFIG_USE_CAMERA_HW_BIG_DATA)
 	struct cam_hw_param *hw_param = NULL;
-#endif
-
-// Added for PLM P191224-07745 (suggestion from sLSI PMIC team)
-// Re-Set the PMIC voltage
-#if defined(CONFIG_LEDS_S2MU106_FLASH) || defined(CONFIG_LEDS_S2MU107_FLASH)
-	if(s_ctrl->soc_info.index == 0)
-	{
-		pdo_ctrl_by_flash(0);
-		muic_afc_set_voltage(9);
-	}
 #endif
 
 	if (!s_ctrl) {

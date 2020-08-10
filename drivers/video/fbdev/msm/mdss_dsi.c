@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2018, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -477,7 +477,7 @@ end:
 	return ret;
 }
 
-void mdss_dsi_put_dt_vreg_data(struct device *dev,
+static void mdss_dsi_put_dt_vreg_data(struct device *dev,
 	struct dss_module_power *module_power)
 {
 	if (!module_power) {
@@ -492,7 +492,7 @@ void mdss_dsi_put_dt_vreg_data(struct device *dev,
 	module_power->num_vreg = 0;
 }
 
-int mdss_dsi_get_dt_vreg_data(struct device *dev,
+static int mdss_dsi_get_dt_vreg_data(struct device *dev,
 	struct device_node *of_node, struct dss_module_power *mp,
 	enum dsi_pm_type module)
 {
@@ -905,8 +905,7 @@ static ssize_t mdss_dsi_cmd_write(struct file *file, const char __user *p,
 static int mdss_dsi_cmd_flush(struct file *file, fl_owner_t id)
 {
 	struct buf_data *pcmds = file->private_data;
-	unsigned int len;
-	int blen, i;
+	int blen, len, i;
 	char *buf, *bufp, *bp;
 	struct dsi_ctrl_hdr *dchdr;
 
@@ -950,7 +949,7 @@ static int mdss_dsi_cmd_flush(struct file *file, fl_owner_t id)
 	while (len >= sizeof(*dchdr)) {
 		dchdr = (struct dsi_ctrl_hdr *)bp;
 		dchdr->dlen = ntohs(dchdr->dlen);
-		if (dchdr->dlen > (len - sizeof(*dchdr)) || dchdr->dlen < 0) {
+		if (dchdr->dlen > len || dchdr->dlen < 0) {
 			pr_err("%s: dtsi cmd=%x error, len=%d\n",
 				__func__, dchdr->dtype, dchdr->dlen);
 			kfree(buf);

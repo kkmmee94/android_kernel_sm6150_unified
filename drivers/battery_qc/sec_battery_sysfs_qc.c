@@ -47,10 +47,8 @@ static struct device_attribute sec_battery_attrs[] = {
 #if defined(CONFIG_ENG_BATTERY_CONCEPT)
 	SEC_BATTERY_ATTR(batt_temp_test),
 	SEC_BATTERY_ATTR(step_chg_test),
-#if 0
 	SEC_BATTERY_ATTR(pdp_limit_w_default),
 	SEC_BATTERY_ATTR(pdp_limit_w_final),
-#endif
 	SEC_BATTERY_ATTR(pdp_limit_w_interval),
 #endif
 	SEC_BATTERY_ATTR(batt_wdt_control),
@@ -123,7 +121,7 @@ ssize_t sec_bat_show_attrs(struct device *dev,
 	int rc = 0;
 	int i = 0;
 #if defined(CONFIG_ENG_BATTERY_CONCEPT)
-	//struct smb_charger *chg = power_supply_get_drvdata(battery->psy_bat);
+	struct smb_charger *chg = power_supply_get_drvdata(battery->psy_bat);
 #endif
 
 	switch (offset) {
@@ -138,6 +136,7 @@ ssize_t sec_bat_show_attrs(struct device *dev,
 			pr_err("%s: Fail to get POWER_SUPPLY_EXT_PROP_HV_DISABLE(%d)\n", __func__, rc);
 			val.intval = rc;
 		}
+//		pr_info("%s: HV_DISABLE(%d)\n", __func__, val.intval);
 		i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n",
 				val.intval ? 0 : sec_bat_get_hv_charger_status(battery));
 		break;
@@ -365,7 +364,6 @@ ssize_t sec_bat_show_attrs(struct device *dev,
 				battery->step_chg_test_value[6], battery->step_chg_test_value[7],
 				battery->step_chg_test_value[8]);
 		break;
-#if 0
 	case PDP_LIMIT_W_DEFAULT:
 		i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n",
 				chg->default_pdp_limit_w);
@@ -374,7 +372,6 @@ ssize_t sec_bat_show_attrs(struct device *dev,
 		i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n",
 				chg->final_pdp_limit_w);
 		break;
-#endif
 	case PDP_LIMIT_W_INTERVAL:
 		i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n",
 				battery->interval_pdp_limit_w);
@@ -780,7 +777,7 @@ ssize_t sec_bat_store_attrs(
 	int i = 0;
 #endif
 #if defined(CONFIG_ENG_BATTERY_CONCEPT)
-	//struct smb_charger *chg = power_supply_get_drvdata(battery->psy_bat);
+	struct smb_charger *chg = power_supply_get_drvdata(battery->psy_bat);
 #endif
 
 	switch (offset) {
@@ -946,7 +943,6 @@ ssize_t sec_bat_store_attrs(
 		ret = count;
 		break;
 	}
-#if 0
 	case PDP_LIMIT_W_DEFAULT:
 		if (sscanf(buf, "%d\n", &x) == 1) {
 			chg->default_pdp_limit_w = x;
@@ -959,7 +955,6 @@ ssize_t sec_bat_store_attrs(
 			ret = count;
 		}
 		break;
-#endif
 	case PDP_LIMIT_W_INTERVAL:
 		if (sscanf(buf, "%d\n", &x) == 1) {
 			battery->interval_pdp_limit_w = x;

@@ -216,7 +216,6 @@ static void glink_ssr_init_notify(struct glink_ssr *ssr)
 
 		nb->nb.notifier_call = glink_ssr_ssr_cb;
 		nb->nb.priority = GLINK_SSR_PRIORITY;
-		nb->ssr = ssr;
 
 		handle = subsys_notif_register_notifier(nb->ssr_label, &nb->nb);
 		if (IS_ERR_OR_NULL(handle)) {
@@ -226,6 +225,7 @@ static void glink_ssr_init_notify(struct glink_ssr *ssr)
 			continue;
 		}
 
+		nb->ssr = ssr;
 		nb->ssr_register_handle = handle;
 		list_add_tail(&nb->list, &ssr->notify_list);
 	}
@@ -285,7 +285,7 @@ static int glink_probe_ssr_cb(struct notifier_block *this,
 {
 	struct edge_info *einfo = container_of(this, struct edge_info, nb);
 
-	GLINK_INFO("received %lu for %s", code, einfo->ssr_label);
+	GLINK_INFO("received %d for %s", code, einfo->ssr_label);
 
 	switch (code) {
 	case SUBSYS_AFTER_POWERUP:

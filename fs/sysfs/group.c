@@ -110,8 +110,7 @@ static int internal_create_group(struct kobject *kobj, int update,
 	struct kernfs_node *kn;
 	int error;
 
-	if (WARN_ON(!kobj || (!update && !kobj->sd)))
-		return -EINVAL;
+	BUG_ON(!kobj || (!update && !kobj->sd));
 
 	/* Updates may happen before the object has been instantiated */
 	if (unlikely(update && !kobj->sd))

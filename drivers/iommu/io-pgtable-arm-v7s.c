@@ -217,8 +217,7 @@ static void *__arm_v7s_alloc_table(int lvl, gfp_t gfp,
 		if (dma != phys)
 			goto out_unmap;
 	}
-	if (lvl == 2)
-		kmemleak_ignore(table);
+	kmemleak_ignore(table);
 	return table;
 
 out_unmap:

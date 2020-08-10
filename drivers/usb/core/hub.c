@@ -44,8 +44,6 @@
 #define USB_VENDOR_GENESYS_LOGIC		0x05e3
 #define HUB_QUIRK_CHECK_PORT_AUTOSUSPEND	0x01
 
-int deny_new_usb __read_mostly = 0;
-
 /* Protect struct usb_device->state and ->children members
  * Note: Both are also protected by ->dev.sem, except that ->state can
  * change to USB_STATE_NOTATTACHED even when the semaphore isn't held. */
@@ -1134,16 +1132,6 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 						   USB_PORT_FEAT_ENABLE);
 		}
 
-		/*
-		 * Add debounce if USB3 link is in polling/link training state.
-		 * Link will automatically transition to Enabled state after
-		 * link training completes.
-		 */
-		if (hub_is_superspeed(hdev) &&
-		    ((portstatus & USB_PORT_STAT_LINK_STATE) ==
-						USB_SS_PORT_LS_POLLING))
-			need_debounce_delay = true;
-
 		/* Clear status-change flags; we'll debounce later */
 		if (portchange & USB_PORT_STAT_C_CONNECTION) {
 			need_debounce_delay = true;
@@ -1769,8 +1757,12 @@ static int hub_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	 *   usbcore.autosuspend = -1 then keep autosuspend disabled.
 	 */
 #ifdef CONFIG_PM
-	if (hdev->dev.power.autosuspend_delay >= 0)
-		pm_runtime_set_autosuspend_delay(&hdev->dev, 2000);
+	if (hdev->dev.power.autosuspend_delay >= 0) {
+		if (hdev->parent)
+			pm_runtime_set_autosuspend_delay(&hdev->dev, 0);
+		else
+			pm_runtime_set_autosuspend_delay(&hdev->dev, 1000);
+	}
 #endif
 
 	/*
@@ -2265,7 +2257,7 @@ static int usb_enumerate_device_otg(struct usb_device *udev)
 		/* descriptor may appear anywhere in config */
 		err = __usb_get_extra_descriptor(udev->rawdescriptors[0],
 				le16_to_cpu(udev->config[0].desc.wTotalLength),
-				USB_DT_OTG, (void **) &desc, sizeof(*desc));
+				USB_DT_OTG, (void **) &desc);
 		if (err || !(desc->bmAttributes & USB_OTG_HNP))
 			return 0;
 
@@ -2866,9 +2858,7 @@ static int hub_port_reset(struct usb_hub *hub, int port1,
 					USB_PORT_FEAT_C_BH_PORT_RESET);
 			usb_clear_port_feature(hub->hdev, port1,
 					USB_PORT_FEAT_C_PORT_LINK_STATE);
-
-			if (udev)
-				usb_clear_port_feature(hub->hdev, port1,
+			usb_clear_port_feature(hub->hdev, port1,
 					USB_PORT_FEAT_C_CONNECTION);
 
 			/*
@@ -3215,7 +3205,8 @@ int usb_port_suspend(struct usb_device *udev, pm_message_t msg)
 	}
 
 	/* disable USB2 hardware LPM */
-	usb_disable_usb2_hardware_lpm(udev);
+	if (udev->usb2_hw_lpm_enabled == 1)
+		usb_set_usb2_hardware_lpm(udev, 0);
 
 	if (usb_disable_ltm(udev)) {
 		dev_err(&udev->dev, "Failed to disable LTM before suspend\n.");
@@ -3253,7 +3244,8 @@ int usb_port_suspend(struct usb_device *udev, pm_message_t msg)
 		usb_enable_ltm(udev);
  err_ltm:
 		/* Try to enable USB2 hardware LPM again */
-		usb_enable_usb2_hardware_lpm(udev);
+		if (udev->usb2_hw_lpm_capable == 1)
+			usb_set_usb2_hardware_lpm(udev, 1);
 
 		if (udev->do_remote_wakeup)
 			(void) usb_disable_remote_wakeup(udev);
@@ -3539,7 +3531,8 @@ int usb_port_resume(struct usb_device *udev, pm_message_t msg)
 		hub_port_logical_disconnect(hub, port1);
 	} else  {
 		/* Try to enable USB2 hardware LPM */
-		usb_enable_usb2_hardware_lpm(udev);
+		if (udev->usb2_hw_lpm_capable == 1)
+			usb_set_usb2_hardware_lpm(udev, 1);
 
 		/* Try to enable USB3 LTM */
 		usb_enable_ltm(udev);
@@ -3627,7 +3620,6 @@ static int hub_suspend(struct usb_interface *intf, pm_message_t msg)
 {
 	struct usb_hub		*hub = usb_get_intfdata(intf);
 	struct usb_device	*hdev = hub->hdev;
-	struct usb_hcd		*hcd = bus_to_hcd(hdev->bus);
 	unsigned		port1;
 	int			status;
 
@@ -3661,9 +3653,6 @@ static int hub_suspend(struct usb_interface *intf, pm_message_t msg)
 	}
 
 	if (hub_is_superspeed(hdev) && hdev->do_remote_wakeup) {
-		if (!hdev->parent && hcd->primary_hcd)
-			usb_phy_powerup(hcd->primary_hcd->usb3_phy);
-
 		/* Enable hub to send remote wakeup for all ports. */
 		for (port1 = 1; port1 <= hdev->maxchild; port1++) {
 			status = set_port_feature(hdev,
@@ -3673,9 +3662,6 @@ static int hub_suspend(struct usb_interface *intf, pm_message_t msg)
 					USB_PORT_FEAT_REMOTE_WAKE_OVER_CURRENT,
 					USB_PORT_FEAT_REMOTE_WAKE_MASK);
 		}
-
-		if (!hdev->parent && hcd->primary_hcd)
-			usb_phy_powerdown(hcd->primary_hcd->usb3_phy);
 	}
 
 	dev_dbg(&intf->dev, "%s\n", __func__);
@@ -4382,7 +4368,7 @@ static void hub_set_initial_usb2_lpm_policy(struct usb_device *udev)
 	if ((udev->bos->ext_cap->bmAttributes & cpu_to_le32(USB_BESL_SUPPORT)) ||
 			connect_type == USB_PORT_CONNECT_TYPE_HARD_WIRED) {
 		udev->usb2_hw_lpm_allowed = 1;
-		usb_enable_usb2_hardware_lpm(udev);
+		usb_set_usb2_hardware_lpm(udev, 1);
 	}
 }
 
@@ -4892,12 +4878,6 @@ static void hub_port_connect(struct usb_hub *hub, int port1, u16 portstatus,
 			goto done;
 		return;
 	}
-
-	if (deny_new_usb) {
-		dev_err(&port_dev->dev, "denied insert of USB device on port %d\n", port1);
-		goto done;
-	}
-
 	if (hub_is_superspeed(hub->hdev))
 		unit_load = 150;
 	else
@@ -5561,7 +5541,8 @@ static int usb_reset_and_verify_device(struct usb_device *udev)
 	/* Disable USB2 hardware LPM.
 	 * It will be re-enabled by the enumeration process.
 	 */
-	usb_disable_usb2_hardware_lpm(udev);
+	if (udev->usb2_hw_lpm_enabled == 1)
+		usb_set_usb2_hardware_lpm(udev, 0);
 
 	/* Disable LPM and LTM while we reset the device and reinstall the alt
 	 * settings.  Device-initiated LPM settings, and system exit latency
@@ -5671,7 +5652,7 @@ static int usb_reset_and_verify_device(struct usb_device *udev)
 
 done:
 	/* Now that the alt settings are re-installed, enable LTM and LPM. */
-	usb_enable_usb2_hardware_lpm(udev);
+	usb_set_usb2_hardware_lpm(udev, 1);
 	usb_unlocked_enable_lpm(udev);
 	usb_enable_ltm(udev);
 	usb_release_bos_descriptor(udev);

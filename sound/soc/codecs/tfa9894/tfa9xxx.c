@@ -52,6 +52,8 @@ SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32_LE)
 #define TFA_MUTE_BY_MIXER /* enable mute control by mixer */
 #define TFA_PERIODIC_STATUS_LOG /* update status regiater periodically */
 
+extern unsigned int lpcharge;
+
 int tfa9xxx_log_revision;
 int tfa9xxx_log_subrevision;
 int tfa9xxx_log_i2c_devicenum;
@@ -2171,15 +2173,20 @@ static void tfa9xxx_container_loaded(const struct firmware *cont,
 	}
 
 	/* Only controls for master device */
-	if (tfa9xxx->tfa->dev_idx == 0)
+	if (tfa9xxx->tfa->dev_idx == 0
+		&& tfa9xxx->codec != NULL)
 		tfa9xxx_create_controls(tfa9xxx);
 
 	/* force ISTVDDS to be set */
 	tfa2_dev_force_cold(tfa9xxx->tfa);
 
 	/* Preload settings using internal clock on TFA2 */
-	queue_delayed_work(tfa9xxx->tfa9xxx_wq,
-		&tfa9xxx->init_work, 5*HZ); /* delay silent cold start */
+	if (lpcharge)
+		queue_delayed_work(tfa9xxx->tfa9xxx_wq,
+			&tfa9xxx->init_work, 0); /* run cold start without delay */
+	else
+		queue_delayed_work(tfa9xxx->tfa9xxx_wq,
+			&tfa9xxx->init_work, 5*HZ); /* delay silent cold start */
 
 #if defined(TFA_ENABLE_INTERRUPT)
 	tfa9xxx_interrupt_enable(tfa9xxx, true);
@@ -2766,12 +2773,7 @@ static struct snd_soc_dai_driver tfa9xxx_dai[] = {
 
 static int tfa9xxx_ext_reset(struct tfa9xxx *tfa9xxx)
 {
-	if (!tfa9xxx) {
-		pr_err("%s: tfa9xxx is not available\n", __func__);
-		return 0;
-	}
-
-	if (gpio_is_valid(tfa9xxx->reset_gpio)) {
+	if (tfa9xxx && gpio_is_valid(tfa9xxx->reset_gpio)) {
 		dev_info(&tfa9xxx->i2c->dev, "%s reset (RST pin)\n",
 			__func__);
 
@@ -2812,6 +2814,25 @@ static int tfa9xxx_ext_reset(struct tfa9xxx *tfa9xxx)
 	}
 
 	return 0;
+}
+
+static int tfa9xxx_load_fw_cold_start(struct tfa9xxx *drv)
+{
+	int ret = 0;
+
+	if (!drv->tfa9xxx_wq) {
+		drv->tfa9xxx_wq = create_singlethread_workqueue("tfa9xxx");
+		if (!drv->tfa9xxx_wq)
+			return -ENOMEM;
+
+		INIT_DELAYED_WORK(&drv->init_work, tfa9xxx_dsp_cold_start);
+	}
+
+	ret = tfa9xxx_load_container(drv);
+	dev_dbg(&drv->i2c->dev, "%s: Container loading requested: %d\n",
+		__func__, ret);
+
+	return ret;
 }
 
 static int tfa9xxx_probe(struct snd_soc_codec *codec)
@@ -3572,6 +3593,12 @@ static int tfa9xxx_i2c_probe(struct i2c_client *i2c,
 	tfa9xxx_device_count++;
 	list_add(&tfa9xxx->list, &tfa9xxx_device_list);
 	mutex_unlock(&tfa9xxx_mutex);
+
+	if (lpcharge) {
+		dev_info(&i2c->dev, "%s call tfa9xxx_load_fw_cold_start in LPM\n",
+			__func__);
+		tfa9xxx_load_fw_cold_start(tfa9xxx);
+	}
 
 	return 0;
 }

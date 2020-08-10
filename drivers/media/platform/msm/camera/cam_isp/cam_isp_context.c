@@ -436,7 +436,7 @@ static int __cam_isp_ctx_handle_buf_done_in_activated_state(
 		}
 
 		if (!req_isp->bubble_detected) {
-			CAM_QCLOGMINIMAL(CAM_ISP,
+			CAM_DBG(CAM_ISP,
 				"Sync with success: req %lld res 0x%x fd 0x%x, ctx %u",
 				req->request_id,
 				req_isp->fence_map_out[j].resource_handle,
@@ -537,7 +537,7 @@ static void __cam_isp_ctx_send_sof_boot_timestamp(
 	req_msg.u.frame_msg.link_hdl = ctx_isp->base->link_hdl;
 	req_msg.u.frame_msg.sof_status = sof_event_status;
 
-	CAM_QCLOGMINIMAL(CAM_ISP,
+	CAM_DBG(CAM_ISP,
 		"request id:%lld frame number:%lld boot time stamp:0x%llx",
 		 request_id, ctx_isp->frame_id,
 		 ctx_isp->boot_timestamp);
@@ -1863,77 +1863,21 @@ static int __cam_isp_ctx_flush_req_in_top_state(
 	struct cam_req_mgr_flush_request *flush_req)
 {
 	int rc = 0;
+	struct cam_isp_context *ctx_isp;
 
-	
-	struct cam_isp_context           *ctx_isp =
-		(struct cam_isp_context *) ctx->ctx_priv;
-	struct cam_isp_stop_args          stop_isp;
-	struct cam_hw_stop_args           stop_args;
-	struct cam_isp_start_args         start_isp;
-	struct cam_hw_reset_args          reset_args;
+	ctx_isp = (struct cam_isp_context *) ctx->ctx_priv;
 	if (flush_req->type == CAM_REQ_MGR_FLUSH_TYPE_ALL) {
-		CAM_INFO(CAM_ISP, "ctx id:%d Last request id to flush is %lld",
-			ctx->ctx_id, flush_req->req_id);
+		CAM_INFO(CAM_ISP, "Last request id to flush is %lld",
+			flush_req->req_id);
 		ctx->last_flush_req = flush_req->req_id;
 	}
 
-	CAM_DBG(CAM_ISP, "ctx id:%d try to flush pending list", ctx->ctx_id);
+	CAM_DBG(CAM_ISP, "try to flush pending list");
 	spin_lock_bh(&ctx->lock);
 	rc = __cam_isp_ctx_flush_req(ctx, &ctx->pending_req_list, flush_req);
 	spin_unlock_bh(&ctx->lock);
 
 	atomic_set(&ctx_isp->process_bubble, 0);
-	if (flush_req->type == CAM_REQ_MGR_FLUSH_TYPE_ALL) {
-		/* if active and wait list are empty, return */
-		spin_lock_bh(&ctx->lock);
-		if ((list_empty(&ctx->wait_req_list)) &&
-			(list_empty(&ctx->active_req_list))) {
-			spin_unlock_bh(&ctx->lock);
-			CAM_DBG(CAM_ISP, "ctx id:%d active,wait list are empty",
-				ctx->ctx_id);
-			goto end;
-		}
-		spin_unlock_bh(&ctx->lock);
-
-		/* Stop hw first before active list flush */
-		CAM_DBG(CAM_ISP, "ctx id:%d try to stop hw", ctx->ctx_id);
-		stop_args.ctxt_to_hw_map = ctx_isp->hw_ctx;
-		stop_isp.hw_stop_cmd = CAM_ISP_HW_STOP_AT_FRAME_BOUNDARY;
-		stop_isp.stop_only = true;
-		stop_args.args = (void *)&stop_isp;
-		ctx->hw_mgr_intf->hw_stop(ctx->hw_mgr_intf->hw_mgr_priv,
-				&stop_args);
-
-		CAM_DBG(CAM_ISP, "try to reset hw");
-		/* Reset hw */
-		reset_args.ctxt_to_hw_map = ctx_isp->hw_ctx;
-		rc = ctx->hw_mgr_intf->hw_reset(ctx->hw_mgr_intf->hw_mgr_priv,
-			&reset_args);
-		if (rc)
-			goto end;
-
-		spin_lock_bh(&ctx->lock);
-		CAM_DBG(CAM_ISP, "try to flush wait list");
-		rc = __cam_isp_ctx_flush_req(ctx, &ctx->wait_req_list,
-		flush_req);
-		CAM_DBG(CAM_ISP, "try to flush active list");
-		rc = __cam_isp_ctx_flush_req(ctx, &ctx->active_req_list,
-		flush_req);
-		ctx_isp->active_req_cnt = 0;
-		spin_unlock_bh(&ctx->lock);
-
-		CAM_DBG(CAM_ISP, "ctx id%d try to start hw", ctx->ctx_id);
-		/* Start hw */
-		start_isp.hw_config.ctxt_to_hw_map = ctx_isp->hw_ctx;
-		start_isp.start_only = true;
-		start_isp.hw_config.priv = NULL;
-
-		rc = ctx->hw_mgr_intf->hw_start(ctx->hw_mgr_intf->hw_mgr_priv,
-			&start_isp);
-	}
-
-end:
-	ctx_isp->substate_activated = CAM_ISP_CTX_ACTIVATED_SOF;
 	return rc;
 }
 
@@ -3234,6 +3178,7 @@ static int __cam_isp_ctx_start_dev_in_ready(struct cam_context *ctx,
 		CAM_ISP_CTX_ACTIVATED_APPLIED :
 		(req_isp->num_fence_map_out) ? CAM_ISP_CTX_ACTIVATED_EPOCH :
 		CAM_ISP_CTX_ACTIVATED_SOF;
+
 	trace_printk("rdi_only_context = %d\n", ctx_isp->rdi_only_context);
 	trace_printk("num_fence_map_out = %d\n", req_isp->num_fence_map_out);
 
@@ -3255,9 +3200,7 @@ static int __cam_isp_ctx_start_dev_in_ready(struct cam_context *ctx,
 	}
 	/* CAM_DBG(CAM_ISP, "start device success ctx %u", ctx->ctx_id); */
 	trace_printk( "start device success ctx %u\n", ctx->ctx_id);
-
 	list_del_init(&req->list);
-
 	if (req_isp->num_fence_map_out) {
 		list_add_tail(&req->list, &ctx->active_req_list);
 		ctx_isp->active_req_cnt++;
@@ -3266,7 +3209,7 @@ static int __cam_isp_ctx_start_dev_in_ready(struct cam_context *ctx,
 	}
 end:
 	trace_printk( "start_dev: active_cnt = %d start sub_state %d\n",
-			  ctx_isp->active_req_cnt, ctx_isp->substate_activated);
+		      ctx_isp->active_req_cnt, ctx_isp->substate_activated);
 	return rc;
 }
 

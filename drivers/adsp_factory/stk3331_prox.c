@@ -311,6 +311,7 @@ static ssize_t prox_fac_cal_store(struct device *dev,
 	int ret = 0;
 
 	if (sysfs_streq(buf, "1")) {
+#if 0
 		mutex_lock(&data->prox_factory_mutex);
 		adsp_unicast(NULL, 0,
 			prox_idx, 0, MSG_TYPE_SET_CAL_DATA);
@@ -333,7 +334,15 @@ static ssize_t prox_fac_cal_store(struct device *dev,
 		threshold[0] = (uint16_t)data->msg_buf[MSG_PROX][0];
 		threshold[1] = (uint16_t)data->msg_buf[MSG_PROX][1];
 
-		pr_info("[FACTORY] %s: near %u, far %u\n", __func__, threshold[0], threshold[1]);
+		pr_info("[FACTORY] %s: fac near %u, far %u\n", __func__, threshold[0], threshold[1]);
+
+		ret = prox_write_cal_data(threshold, false);
+
+		if (ret < 0) {
+			pr_err("[FACTORY] %s: prox_write_cal_data() failed(%d)\n", __func__, ret);
+			return ret;
+		}
+#endif
 	}
 	else if(sysfs_streq(buf, "2")) {
 		mutex_lock(&data->prox_factory_mutex);

@@ -14,7 +14,6 @@
 
 #include "sm6150.dtsi"
 #include "sm6150-idp.dtsi"
-#include "sm6150-audio-overlay.dtsi"
 
 / {
 	model = "Qualcomm Technologies, Inc. SM6150 PM6150 IDP";

@@ -242,13 +242,8 @@ static int dsps_check_status(struct musb *musb, void *unused)
 
 	switch (musb->xceiv->otg->state) {
 	case OTG_STATE_A_WAIT_VRISE:
-		if (musb->port_mode == MUSB_HOST) {
-			musb->xceiv->otg->state = OTG_STATE_A_WAIT_BCON;
-			dsps_mod_timer_optional(glue);
-			break;
-		}
-		/* fall through */
-
+		dsps_mod_timer_optional(glue);
+		break;
 	case OTG_STATE_A_WAIT_BCON:
 		/* keep VBUS on for host-only mode */
 		if (musb->port_mode == MUSB_PORT_MODE_HOST) {

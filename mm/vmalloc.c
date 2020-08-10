@@ -35,6 +35,9 @@
 #include <linux/uaccess.h>
 #include <asm/tlbflush.h>
 #include <asm/shmparam.h>
+
+atomic_long_t nr_vmalloc_pages;
+
 #include "internal.h"
 
 struct vfree_deferred {
@@ -339,13 +342,6 @@ static unsigned long cached_align;
 
 static unsigned long vmap_area_pcpu_hole;
 
-static atomic_long_t nr_vmalloc_pages;
-
-unsigned long vmalloc_nr_pages(void)
-{
-	return atomic_long_read(&nr_vmalloc_pages);
-}
-
 static struct vmap_area *__find_vmap_area(unsigned long addr)
 {
 	struct rb_node *n = vmap_area_root.rb_node;
@@ -504,11 +500,7 @@ nocache:
 	}
 
 found:
-	/*
-	 * Check also calculated address against the vstart,
-	 * because it can be 0 because of big align request.
-	 */
-	if (addr + size > vend || addr < vstart)
+	if (addr + size > vend)
 		goto overflow;
 
 	va->va_start = addr;
@@ -1715,7 +1707,6 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
 		if (unlikely(!page)) {
 			/* Successfully allocated i pages, free them in __vunmap() */
 			area->nr_pages = i;
-			atomic_long_add(area->nr_pages, &nr_vmalloc_pages);
 			goto fail;
 		}
 		area->pages[i] = page;
@@ -2275,7 +2266,7 @@ int remap_vmalloc_range_partial(struct vm_area_struct *vma, unsigned long uaddr,
 	if (!(area->flags & VM_USERMAP))
 		return -EINVAL;
 
-	if (kaddr + size > area->addr + get_vm_area_size(area))
+	if (kaddr + size > area->addr + area->size)
 		return -EINVAL;
 
 	do {

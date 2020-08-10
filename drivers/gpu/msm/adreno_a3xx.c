@@ -1419,7 +1419,6 @@ static void a3xx_start(struct adreno_device *adreno_dev)
 
 }
 
-#ifdef CONFIG_CORESIGHT
 static struct adreno_coresight_register a3xx_coresight_registers[] = {
 	{ A3XX_RBBM_DEBUG_BUS_CTL, 0x0001093F },
 	{ A3XX_RBBM_EXT_TRACE_STOP_CNT, 0x00017fff },
@@ -1468,10 +1467,7 @@ static struct adreno_coresight a3xx_coresight = {
 	.registers = a3xx_coresight_registers,
 	.count = ARRAY_SIZE(a3xx_coresight_registers),
 	.groups = a3xx_coresight_groups,
-	.read = kgsl_regread,
-	.write = kgsl_regwrite,
 };
-#endif
 
 static unsigned int a3xx_int_bits[ADRENO_INT_BITS_MAX] = {
 	ADRENO_INT_DEFINE(ADRENO_INT_RBBM_AHB_ERROR, A3XX_INT_RBBM_AHB_ERROR),
@@ -1951,8 +1947,6 @@ struct adreno_gpudev adreno_a3xx_gpudev = {
 	.perfcounter_close = a3xx_perfcounter_close,
 	.start = a3xx_start,
 	.snapshot = a3xx_snapshot,
-#ifdef CONFIG_CORESIGHT
 	.coresight = {&a3xx_coresight},
-#endif
 	.clk_set_options = a3xx_clk_set_options,
 };

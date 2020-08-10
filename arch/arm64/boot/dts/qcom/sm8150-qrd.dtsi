@@ -19,9 +19,6 @@
 #include "sm8150-thermal-overlay.dtsi"
 
 &qupv3_se4_i2c {
-#address-cells = <1>;
-#size-cells = <0>;
-
 #include "smb1390.dtsi"
 #include "smb1355.dtsi"
 };
@@ -53,7 +50,6 @@
 	qcom,hold-soc-while-full;
 	qcom,linearize-soc;
 	qcom,five-pin-battery;
-	qcom,cl-wt-enable;
 	/* ESR fast calibration */
 	qcom,fg-esr-timer-chg-fast = <0 7>;
 	qcom,fg-esr-timer-dischg-fast = <0 7>;
@@ -100,9 +96,6 @@
 &qupv3_se17_i2c {
 	status = "ok";
 
-	#address-cells = <1>;
-	#size-cells = <0>;
-
 	st_fts@49 {
 		compatible = "st,fts";
 		reg = <0x49>;
@@ -122,10 +115,6 @@
 
 &qupv3_se9_i2c {
 	status = "ok";
-
-	#address-cells = <1>;
-	#size-cells = <0>;
-
 	nq@28 {
 		compatible = "qcom,nq-nci";
 		reg = <0x28>;
@@ -151,13 +140,8 @@
 	};
 };
 
-&sde_dsi {
-	lab-supply = &ab_vreg;
-	ibb-supply = &ibb_vreg;
-};
-
 &dsi_sw43404_amoled_cmd {
-	qcom,panel-supply-entries = <&dsi_panel_pwr_supply_vdd_labibb>;
+	qcom,panel-supply-entries = <&dsi_panel_pwr_supply_vdd_no_labibb>;
 	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_dcs";
 	qcom,mdss-dsi-bl-min-level = <1>;
 	qcom,mdss-dsi-bl-max-level = <1023>;
@@ -192,30 +176,6 @@
 	qcom,platform-reset-gpio = <&tlmm 6 0>;
 };
 
-&dsi_sim_cmd {
-	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
-	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_dcs";
-	qcom,platform-reset-gpio = <&tlmm 6 0>;
-};
-
-&dsi_sim_vid {
-	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
-	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_dcs";
-	qcom,platform-reset-gpio = <&tlmm 6 0>;
-};
-
-&dsi_dual_sim_cmd {
-	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
-	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_dcs";
-	qcom,platform-reset-gpio = <&tlmm 6 0>;
-};
-
-&dsi_dual_sim_vid {
-	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
-	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_dcs";
-	qcom,platform-reset-gpio = <&tlmm 6 0>;
-};
-
 &dsi_sw43404_amoled_cmd_display {
 	qcom,dsi-display-active;
 };
@@ -238,10 +198,6 @@
 
 &qupv3_se4_i2c {
 	status = "ok";
-
-	#address-cells = <1>;
-	#size-cells = <0>;
-
 	redriver@19 {
 		compatible = "onnn,redriver";
 		reg = <0x19>;
@@ -499,7 +455,6 @@
 		polling-delay = <0>;
 		thermal-governor = "user_space";
 		thermal-sensors = <&pm8150b_adc_tm ADC_AMUX_THM1_PU2>;
-		wake-capable-sensor;
 		trips {
 			active-config0 {
 				temperature = <125000>;
@@ -514,7 +469,6 @@
 		polling-delay = <0>;
 		thermal-governor = "user_space";
 		thermal-sensors = <&pm8150_adc_tm ADC_XO_THERM_PU2>;
-		wake-capable-sensor;
 		trips {
 			active-config0 {
 				temperature = <125000>;
@@ -529,7 +483,6 @@
 		polling-delay = <0>;
 		thermal-governor = "user_space";
 		thermal-sensors = <&pm8150_adc_tm ADC_AMUX_THM1_PU2>;
-		wake-capable-sensor;
 		trips {
 			active-config0 {
 				temperature = <125000>;
@@ -544,7 +497,6 @@
 		polling-delay = <0>;
 		thermal-governor = "user_space";
 		thermal-sensors = <&pm8150_adc_tm ADC_AMUX_THM2_PU2>;
-		wake-capable-sensor;
 		trips {
 			active-config0 {
 				temperature = <125000>;
@@ -559,7 +511,6 @@
 		polling-delay = <0>;
 		thermal-governor = "user_space";
 		thermal-sensors = <&pm8150l_adc_tm ADC_AMUX_THM1_PU2>;
-		wake-capable-sensor;
 		trips {
 			active-config0 {
 				temperature = <125000>;
@@ -574,7 +525,6 @@
 		polling-delay = <0>;
 		thermal-governor = "user_space";
 		thermal-sensors = <&pm8150l_adc_tm ADC_AMUX_THM2_PU2>;
-		wake-capable-sensor;
 		trips {
 			active-config0 {
 				temperature = <125000>;
@@ -589,7 +539,6 @@
 		polling-delay = <0>;
 		thermal-governor = "user_space";
 		thermal-sensors = <&pm8150l_adc_tm ADC_AMUX_THM3_PU2>;
-		wake-capable-sensor;
 		trips {
 			active-config0 {
 				temperature = <125000>;
@@ -643,14 +592,12 @@
 		      <&pm8150b_vadc ADC_USB_IN_I>,
 		      <&pm8150b_vadc ADC_SBUx>,
 		      <&pm8150b_vadc ADC_VPH_PWR>,
-		      <&pm8150b_vadc ADC_CHG_TEMP>,
-		      <&pm8150b_vadc ADC_USB_IN_V_16>;
+		      <&pm8150b_vadc ADC_CHG_TEMP>;
 	io-channel-names = "mid_voltage",
 			   "usb_in_current",
 			   "sbux_res",
 			   "vph_voltage",
-			   "chg_temp",
-			   "usb_in_voltage";
+			   "chg_temp";
 	qcom,battery-data = <&qrd_batterydata>;
 	qcom,sw-jeita-enable;
 	qcom,wd-bark-time-secs = <16>;
@@ -667,8 +614,6 @@
 };
 
 &smb1390_charger {
-	/delete-property/ compatible;
-	compatible = "qcom,smb1390-charger-psy";
 	io-channels = <&pm8150b_vadc ADC_AMUX_THM2>;
 	io-channel-names = "cp_die_temp";
 	status = "ok";

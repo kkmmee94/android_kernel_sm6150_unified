@@ -126,7 +126,7 @@ struct sx9360_p {
 	int debug_count;
 	char hall_ic[6];
 };
-
+#ifdef CONFIG_SUPPORT_HALL
 static int sx9360_check_hallic_state(char *file_path, char hall_ic_status[])
 {
 	int iRet = 0;
@@ -162,7 +162,7 @@ static int sx9360_check_hallic_state(char *file_path, char hall_ic_status[])
 
 	return iRet;
 }
-
+#endif
 static int sx9360_get_nirq_state(struct sx9360_p *data)
 {
 	return gpio_get_value_cansleep(data->gpio_nirq);
@@ -1244,6 +1244,7 @@ static void sx9360_debug_work_func(struct work_struct *work)
 {
 	struct sx9360_p *data = container_of((struct delayed_work *)work,
 		struct sx9360_p, debug_work);
+#ifdef CONFIG_SUPPORT_HALL
 	static int hall_flag = 1;
 
 #if defined(CONFIG_FOLDER_HALL)
@@ -1265,7 +1266,7 @@ static void sx9360_debug_work_func(struct work_struct *work)
 	} else {
 		hall_flag = 1;
 	}
-
+#endif
 	if (atomic_read(&data->enable) == ON) {
 		if (data->abnormal_mode) {
 			sx9360_get_data(data);

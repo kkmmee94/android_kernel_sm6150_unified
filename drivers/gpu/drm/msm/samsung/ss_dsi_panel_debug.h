@@ -29,6 +29,7 @@
 //#include "ss_dsi_panel_common.h"
 #ifdef CONFIG_SEC_DEBUG
 #include <linux/sec_debug.h>
+#include <linux/sec_debug_partition.h>
 #endif
 
 

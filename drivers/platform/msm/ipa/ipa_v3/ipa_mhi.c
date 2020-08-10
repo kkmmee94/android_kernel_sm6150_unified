@@ -1,4 +1,4 @@
-/* Copyright (c) 2015-2019 The Linux Foundation. All rights reserved.
+/* Copyright (c) 2015-2018 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -61,7 +61,7 @@
 	IPA_MHI_DBG("EXIT\n")
 
 #define IPA_MHI_MAX_UL_CHANNELS 1
-#define IPA_MHI_MAX_DL_CHANNELS 2
+#define IPA_MHI_MAX_DL_CHANNELS 1
 
 /* bit #40 in address should be asserted for MHI transfers over pcie */
 #define IPA_MHI_HOST_ADDR_COND(addr) \
@@ -195,7 +195,7 @@ static int ipa_mhi_start_gsi_channel(enum ipa_client_type client,
 	struct gsi_evt_ring_props ev_props;
 	struct ipa_mhi_msi_info *msi;
 	struct gsi_chan_props ch_props;
-	union gsi_channel_scratch ch_scratch;
+	union __packed gsi_channel_scratch ch_scratch;
 	struct ipa3_ep_context *ep;
 	const struct ipa_gsi_ep_config *ep_cfg;
 	struct ipa_ep_cfg_ctrl ep_cfg_ctrl;
@@ -283,10 +283,8 @@ static int ipa_mhi_start_gsi_channel(enum ipa_client_type client,
 	ch_props.ring_base_addr = IPA_MHI_HOST_ADDR_COND(
 			params->ch_ctx_host->rbase);
 
-	/* Burst mode is not supported on DPL pipes */
-	if ((client != IPA_CLIENT_MHI_DPL_CONS) &&
-		(params->ch_ctx_host->brstmode == IPA_MHI_BURST_MODE_DEFAULT ||
-		params->ch_ctx_host->brstmode == IPA_MHI_BURST_MODE_ENABLE)) {
+	if (params->ch_ctx_host->brstmode == IPA_MHI_BURST_MODE_DEFAULT ||
+		params->ch_ctx_host->brstmode == IPA_MHI_BURST_MODE_ENABLE) {
 		burst_mode_enabled = true;
 	}
 
@@ -596,12 +594,12 @@ fail_reset_channel:
 
 int ipa3_mhi_resume_channels_internal(enum ipa_client_type client,
 		bool LPTransitionRejected, bool brstmode_enabled,
-		union gsi_channel_scratch ch_scratch, u8 index)
+		union __packed gsi_channel_scratch ch_scratch, u8 index)
 {
 	int res;
 	int ipa_ep_idx;
 	struct ipa3_ep_context *ep;
-	union gsi_channel_scratch gsi_ch_scratch;
+	union __packed gsi_channel_scratch gsi_ch_scratch;
 
 	IPA_MHI_FUNC_ENTRY();
 
@@ -617,7 +615,7 @@ int ipa3_mhi_resume_channels_internal(enum ipa_client_type client,
 		res = gsi_read_channel_scratch(ep->gsi_chan_hdl,
 			&gsi_ch_scratch);
 		if (res) {
-			IPA_MHI_ERR("read ch scratch fail %d\n", res);
+			IPA_MHI_ERR("read ch scratch fail %d %d\n", res);
 			return res;
 		}
 

@@ -281,7 +281,7 @@ struct sk_buff *__skb_try_recv_datagram(struct sock *sk, unsigned int flags,
 			break;
 
 		sk_busy_loop(sk, flags & MSG_DONTWAIT);
-	} while (sk->sk_receive_queue.prev != *last);
+	} while (!skb_queue_empty(&sk->sk_receive_queue));
 
 	error = -EAGAIN;
 

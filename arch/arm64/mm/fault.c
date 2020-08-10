@@ -49,9 +49,8 @@
 #include <soc/qcom/scm.h>
 #include <trace/events/exception.h>
 
-#ifdef CONFIG_SEC_DEBUG
 #include <linux/sec_debug.h>
-#endif
+#include <linux/sec_debug_user_reset.h>
 
 struct fault_info {
 	int	(*fn)(unsigned long addr, unsigned int esr,
@@ -128,7 +127,7 @@ static void mem_abort_decode(unsigned int esr)
 	pr_alert("  EA = %lu, S1PTW = %lu\n",
 		 (esr & ESR_ELx_EA) >> ESR_ELx_EA_SHIFT,
 		 (esr & ESR_ELx_S1PTW) >> ESR_ELx_S1PTW_SHIFT);
-	pr_alert("  FSC = %u\n", (esr & ESR_ELx_FSC));
+	pr_alert("  FSC = %lu\n", (esr & ESR_ELx_FSC));
 
 	if (esr_is_data_abort(esr))
 		data_abort_decode(esr);
@@ -163,14 +162,14 @@ void show_pte(unsigned long addr)
 		 mm == &init_mm ? "swapper" : "user", PAGE_SIZE / SZ_1K,
 		 VA_BITS, mm->pgd);
 
-#ifdef CONFIG_SEC_USER_RESET_DEBUG
+#ifdef CONFIG_USER_RESET_DEBUG
 	sec_debug_store_pte((unsigned long)mm->pgd, 0);
 #endif
 
 	pgd = pgd_offset(mm, addr);
 	pr_alert("[%016lx] *pgd=%016llx", addr, pgd_val(*pgd));
 
-#ifdef CONFIG_SEC_USER_RESET_DEBUG
+#ifdef CONFIG_USER_RESET_DEBUG
 	sec_debug_store_pte((unsigned long)addr, 1);
 	sec_debug_store_pte((unsigned long)pgd_val(*pgd), 2);
 #endif
@@ -186,7 +185,7 @@ void show_pte(unsigned long addr)
 		pud = pud_offset(pgd, addr);
 		pr_cont(", *pud=%016llx", pud_val(*pud));
 
-#ifdef CONFIG_SEC_USER_RESET_DEBUG
+#ifdef CONFIG_USER_RESET_DEBUG
 		sec_debug_store_pte((unsigned long)pud_val(*pud), 3);
 #endif
 
@@ -196,7 +195,7 @@ void show_pte(unsigned long addr)
 		pmd = pmd_offset(pud, addr);
 		pr_cont(", *pmd=%016llx", pmd_val(*pmd));
 
-#ifdef CONFIG_SEC_USER_RESET_DEBUG
+#ifdef CONFIG_USER_RESET_DEBUG
 		sec_debug_store_pte((unsigned long)pmd_val(*pmd), 4);
 #endif
 
@@ -206,7 +205,7 @@ void show_pte(unsigned long addr)
 		pte = pte_offset_map(pmd, addr);
 		pr_cont(", *pte=%016llx", pte_val(*pte));
 
-#ifdef CONFIG_SEC_USER_RESET_DEBUG
+#ifdef CONFIG_USER_RESET_DEBUG
 		sec_debug_store_pte((unsigned long)pte_val(*pte), 5);
 #endif
 
@@ -313,7 +312,7 @@ static void __do_kernel_fault(unsigned long addr, unsigned int esr,
 		msg = "paging request";
 	}
 
-#ifdef CONFIG_SEC_USER_RESET_DEBUG
+#ifdef CONFIG_USER_RESET_DEBUG
 	sec_debug_store_extc_idx(false);
 #endif
 
@@ -816,7 +815,7 @@ asmlinkage void __exception do_mem_abort(unsigned long addr, unsigned int esr,
 	const struct fault_info *inf = esr_to_fault_info(esr);
 	struct siginfo info;
 
-#ifdef CONFIG_SEC_USER_RESET_DEBUG
+#ifdef CONFIG_USER_RESET_DEBUG
 	sec_debug_save_fault_info(esr, inf->name, addr, 0UL);
 #endif
 
@@ -880,7 +879,7 @@ asmlinkage void __exception do_sp_pc_abort(unsigned long addr,
 				    esr_get_class_string(esr), (void *)regs->pc,
 				    (void *)regs->sp);
 
-#ifdef CONFIG_SEC_USER_RESET_DEBUG
+#ifdef CONFIG_USER_RESET_DEBUG
 	sec_debug_save_fault_info(esr, esr_get_class_string(esr),
 			(unsigned long)regs->pc, (unsigned long)regs->sp);
 #endif
@@ -923,17 +922,16 @@ void __init hook_debug_fault_code(int nr,
 	debug_fault_info[nr].name	= name;
 }
 
-asmlinkage int __exception do_debug_exception(unsigned long addr_if_watchpoint,
+asmlinkage int __exception do_debug_exception(unsigned long addr,
 					      unsigned int esr,
 					      struct pt_regs *regs)
 {
 	const struct fault_info *inf = debug_fault_info + DBG_ESR_EVT(esr);
-	unsigned long pc = instruction_pointer(regs);
 	struct siginfo info;
 	int rv;
 
-#ifdef CONFIG_SEC_USER_RESET_DEBUG
-	sec_debug_save_fault_info(esr, inf->name, addr_if_watchpoint, 0UL);
+#ifdef CONFIG_USER_RESET_DEBUG
+	sec_debug_save_fault_info(esr, inf->name, addr, 0UL);
 #endif
 	/*
 	 * Tell lockdep we disabled irqs in entry.S. Do nothing if they were
@@ -942,19 +940,19 @@ asmlinkage int __exception do_debug_exception(unsigned long addr_if_watchpoint,
 	if (interrupts_enabled(regs))
 		trace_hardirqs_off();
 
-	if (user_mode(regs) && pc > TASK_SIZE)
+	if (user_mode(regs) && instruction_pointer(regs) > TASK_SIZE)
 		arm64_apply_bp_hardening();
 
-	if (!inf->fn(addr_if_watchpoint, esr, regs)) {
+	if (!inf->fn(addr, esr, regs)) {
 		rv = 1;
 	} else {
 		pr_alert("Unhandled debug exception: %s (0x%08x) at 0x%016lx\n",
-			 inf->name, esr, pc);
+			 inf->name, esr, addr);
 
 		info.si_signo = inf->sig;
 		info.si_errno = 0;
 		info.si_code  = inf->code;
-		info.si_addr  = (void __user *)pc;
+		info.si_addr  = (void __user *)addr;
 		arm64_notify_die("", regs, &info, 0);
 		rv = 0;
 	}

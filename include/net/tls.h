@@ -89,8 +89,6 @@ struct tls_context {
 
 	void *priv_ctx;
 
-	u8 tx_conf:2;
-
 	u16 prepend_size;
 	u16 tag_size;
 	u16 overhead_size;
@@ -106,6 +104,7 @@ struct tls_context {
 
 	u16 pending_open_record_frags;
 	int (*push_pending_record)(struct sock *sk, int flags);
+	void (*free_resources)(struct sock *sk);
 
 	void (*sk_write_space)(struct sock *sk);
 	void (*sk_proto_close)(struct sock *sk, long timeout);
@@ -130,7 +129,6 @@ int tls_sw_sendmsg(struct sock *sk, struct msghdr *msg, size_t size);
 int tls_sw_sendpage(struct sock *sk, struct page *page,
 		    int offset, size_t size, int flags);
 void tls_sw_close(struct sock *sk, long timeout);
-void tls_sw_free_tx_resources(struct sock *sk);
 
 void tls_sk_destruct(struct sock *sk, struct tls_context *ctx);
 void tls_icsk_clean_acked(struct sock *sk);

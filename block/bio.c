@@ -579,13 +579,8 @@ EXPORT_SYMBOL(bio_phys_segments);
 
 static inline void bio_clone_crypt_key(struct bio *dst, const struct bio *src)
 {
-#ifdef CONFIG_BLK_DEV_CRYPT
-#ifdef CONFIG_BLK_DEV_CRYPT_DUN
-	dst->bi_iter.bi_dun = src->bi_iter.bi_dun;
-#endif
-	dst->bi_cryptd = src->bi_cryptd;
-#endif
 #ifdef CONFIG_PFK
+	dst->bi_iter.bi_dun = src->bi_iter.bi_dun;
 #ifdef CONFIG_DM_DEFAULT_KEY
 	dst->bi_crypt_key = src->bi_crypt_key;
 	dst->bi_crypt_skip = src->bi_crypt_skip;
@@ -622,6 +617,9 @@ void __bio_clone_fast(struct bio *bio, struct bio *bio_src)
 	bio->bi_write_hint = bio_src->bi_write_hint;
 	bio->bi_iter = bio_src->bi_iter;
 	bio->bi_io_vec = bio_src->bi_io_vec;
+#ifdef CONFIG_BLK_DEV_CRYPT
+	bio->bi_cryptd = bio_src->bi_cryptd;
+#endif
 	bio_clone_crypt_key(bio, bio_src);
 	bio_clone_blkcg_association(bio, bio_src);
 }
@@ -706,6 +704,9 @@ struct bio *bio_clone_bioset(struct bio *bio_src, gfp_t gfp_mask,
 	bio->bi_write_hint	= bio_src->bi_write_hint;
 	bio->bi_iter.bi_sector	= bio_src->bi_iter.bi_sector;
 	bio->bi_iter.bi_size	= bio_src->bi_iter.bi_size;
+#ifdef CONFIG_BLK_DEV_CRYPT
+	bio->bi_cryptd = bio_src->bi_cryptd;
+#endif
 
 	switch (bio_op(bio)) {
 	case REQ_OP_DISCARD:
@@ -1298,11 +1299,8 @@ struct bio *bio_copy_user_iov(struct request_queue *q,
 			}
 		}
 
-		if (bio_add_pc_page(q, bio, page, bytes, offset) < bytes) {
-			if (!map_data)
-				__free_page(page);
+		if (bio_add_pc_page(q, bio, page, bytes, offset) < bytes)
 			break;
-		}
 
 		len -= bytes;
 		offset = 0;

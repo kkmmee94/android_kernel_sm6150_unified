@@ -66,7 +66,8 @@ static int xfrm_output_one(struct sk_buff *skb, int err)
 			goto error_nolock;
 		}
 
-		skb->mark = xfrm_smark_get(skb->mark, x);
+		if (x->props.output_mark)
+			skb->mark = x->props.output_mark;
 
 		err = x->outer_mode->output(x, skb);
 		if (err) {
@@ -102,7 +103,6 @@ static int xfrm_output_one(struct sk_buff *skb, int err)
 		skb_dst_force(skb);
 		if (!skb_dst(skb)) {
 			XFRM_INC_STATS(net, LINUX_MIB_XFRMOUTERROR);
-			err = -EHOSTUNREACH;
 			goto error_nolock;
 		}
 

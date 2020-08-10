@@ -14,7 +14,6 @@
 #include <linux/kmsg_dump.h>
 #include <linux/kallsyms.h>
 #include <linux/notifier.h>
-#include <linux/vt_kern.h>
 #include <linux/module.h>
 #include <linux/random.h>
 #include <linux/ftrace.h>
@@ -32,9 +31,9 @@
 #include <trace/events/exception.h>
 #include <soc/qcom/minidump.h>
 
-#ifdef CONFIG_SEC_DEBUG
 #include <linux/sec_debug.h>
-#endif
+#include <linux/sec_debug_summary.h>
+#include <linux/sec_debug_user_reset.h>
 
 #define PANIC_TIMER_STEP 100
 #define PANIC_BLINK_SPD 18
@@ -146,7 +145,7 @@ void panic(const char *fmt, ...)
 	int old_cpu, this_cpu;
 	bool _crash_kexec_post_notifiers = crash_kexec_post_notifiers;
 
-#ifdef CONFIG_SEC_USER_RESET_DEBUG
+#ifdef CONFIG_USER_RESET_DEBUG
 	sec_debug_store_extc_idx(false);
 #endif
 	trace_kernel_panic(0);
@@ -183,9 +182,9 @@ void panic(const char *fmt, ...)
 	if (old_cpu != PANIC_CPU_INVALID && old_cpu != this_cpu)
 		panic_smp_self_stop();
 
-	sec_debug_sched_msg("!!panic!!");
+	secdbg_sched_msg("!!panic!!");
 
-	sec_debug_sched_msg("!!panic!!");
+	secdbg_sched_msg("!!panic!!");
 
 	console_verbose();
 	bust_spinlocks(1);
@@ -202,8 +201,8 @@ void panic(const char *fmt, ...)
 		dump_stack();
 #endif
 
-#ifdef CONFIG_SEC_USER_RESET_DEBUG
-	sec_debug_summary_save_panic_info(buf,
+#ifdef CONFIG_USER_RESET_DEBUG
+	sec_debug_save_panic_info(buf,
 			(unsigned long)__builtin_return_address(0));
 #endif
 
@@ -256,10 +255,7 @@ void panic(const char *fmt, ...)
 	if (_crash_kexec_post_notifiers)
 		__crash_kexec(NULL);
 
-#ifdef CONFIG_VT
-	unblank_screen();
-#endif
-	console_unblank();
+	bust_spinlocks(0);
 
 	/*
 	 * We may have ended up stopping the CPU holding the lock (in

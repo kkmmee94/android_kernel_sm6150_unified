@@ -143,5 +143,14 @@ config PM6150_CC_VBUS_SHORT
 	help
 	  Helps to detect CC to VBUS 
 	  short circuit detection using PM6150.
+	  
+config PM6150_USB_FALSE_DETECTION_WA_BY_GND
+	bool "Config USB false detection avoidance by reading PM6150 RID ADC module"
+	depends on QPNP_SMB5 && !SEC_FACTORY
+	default n
+	help
+	  Work arround to avoid USB false detection by reading PM6150 RID ADC 
+	  module to know connected status.
+	  using PM6150.
 
 endmenu

@@ -51,11 +51,10 @@
 static inline bool ext4_bio_encrypted(struct bio *bio)
 {
 #ifdef CONFIG_EXT4_FS_ENCRYPTION
-#ifdef CONFIG_FS_INLINE_ENCRYPTION
-	/* REQ_CRYPT is used for inline encryption */
+	/* REQ_CRYPT is used for diskcipher */
 	if (bio->bi_opf & REQ_CRYPT)
 		return false;
-#endif
+
 	return unlikely(bio->bi_private != NULL);
 #else
 	return false;

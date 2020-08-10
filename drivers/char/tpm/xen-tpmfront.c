@@ -112,7 +112,7 @@ static int vtpm_send(struct tpm_chip *chip, u8 *buf, size_t count)
 		return -ETIME;
 	}
 
-	return 0;
+	return count;
 }
 
 static int vtpm_recv(struct tpm_chip *chip, u8 *buf, size_t count)

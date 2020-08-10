@@ -234,7 +234,6 @@ TEEC_Result TEEC_AllocateSharedMemory(TEEC_Context *context,
 	if (!sharedMem->buffer)
 		goto exit;
 
-	sharedMem->imp.context = context;
 	((TeecContext *)(context->imp))->allocated_shmem[ctx_shmem_index]
 								    = sharedMem;
 	result = TEEC_SUCCESS;
@@ -251,7 +250,7 @@ void TEEC_ReleaseSharedMemory(TEEC_SharedMemory *sharedMem)
 				(TeecContext *)(sharedMem->imp.context->imp),
 				sharedMem);
 
-		if (ctx_shmem_index >= 0) {
+		if (ctx_shmem_index > 0) {
 			((TeecContext *)(sharedMem->imp.context->imp))->
 					allocated_shmem[ctx_shmem_index] = NULL;
 			kfree(sharedMem->buffer);

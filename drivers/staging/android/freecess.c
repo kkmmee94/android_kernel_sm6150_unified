@@ -27,8 +27,6 @@ static atomic_t kfreecess_init_suc;
 static int last_kill_pid = -1;
 static struct proc_dir_entry *freecess_rootdir = NULL;
 
-int freecess_fw_version = 0;    // record freecess framework version
-
 struct report_stat_s
 {
 	spinlock_t lock;
@@ -60,10 +58,9 @@ static char* mod_name[MOD_END] =
 
 struct priv_data
 {
+	int caller_pid;
 	int target_uid;
 	int flag;		    //MOD_SIG,MOD_BINDER
-	int code; //RPC code
-	char rpcname[INTERFACETOKEN_BUFF_SIZE]; //interface token
 	pkg_info_t pkg_info;	//MOD_PKG
 };
 
@@ -79,7 +76,7 @@ static int check_mod_type(int mod)
 	return (mod < MOD_END) && (mod > 0);
 }
 
-int thread_group_is_frozen(struct task_struct* task)
+static int thread_group_is_frozen(struct task_struct* task)
 {
 	struct task_struct *leader = task->group_leader;
 
@@ -94,13 +91,7 @@ static void dump_kfreecess_msg(struct kfreecess_msg_data *msg)
 		return;
 	}
 
-	printk(KERN_ERR "type: %d\n", msg->type);
-	printk(KERN_ERR "mode: %d\n", msg->mod);
-	printk(KERN_ERR "src_portid: %d\n", msg->src_portid);
-	printk(KERN_ERR "dest_portid: %d\n", msg->dst_portid);
-	printk(KERN_ERR "kernel version: %d\n", FREECESS_KERNEL_VERSION);
-	printk(KERN_ERR "fw version: %d\n", FREECESS_PEER_VERSION(msg->version));
-	printk(KERN_ERR "target_uid: %d\n", msg->target_uid);
+	printk(KERN_ERR "type: %d, mode: %d\n", msg->type, msg->mod);
 }
 
 
@@ -142,28 +133,26 @@ int mod_sendmsg(int type, int mod, struct priv_data* data)
 	payload->mod = mod;
 	payload->src_portid = KERNEL_ID_NETLINK;
 	payload->dst_portid = atomic_read(&bind_port[mod]);
-	payload->version = FREECESS_PACK_VERSION(FREECESS_KERNEL_VERSION);
 
 	if (data) {
+		payload->caller_pid = data->caller_pid;
 		payload->target_uid = data->target_uid;
-		if (payload->mod == MOD_BINDER) {
-			payload->code = data->code;
-			memcpy(payload->rpcname, data->rpcname, sizeof(data->rpcname));
-		}
 		if (payload->mod == MOD_PKG)
 			memcpy(&payload->pkg_info, &data->pkg_info, sizeof(pkg_info_t));
 		else
 			payload->flag = data->flag;
 	}
+	//dump_kfreecess_msg(payload);
 	if ((ret = nlmsg_unicast(kfreecess_mod_sock, skb, payload->dst_portid)) < 0) {
 		pr_err("nlmsg_unicast failed! %s errno %d\n", __func__ , ret);
 		return RET_ERR;
-	}
+	} else
+		pr_info("nlmsg_unicast snd msg success\n");
 
 	return RET_OK;
 }
 
-int sig_report(struct task_struct *p)
+int sig_report(struct task_struct *caller, struct task_struct *p)
 {
 	int ret = RET_OK;
 	struct priv_data data;
@@ -174,6 +163,7 @@ int sig_report(struct task_struct *p)
 
 	walltime = ktime_to_us(ktime_get());
 	memset(&data, 0, sizeof(struct priv_data));
+	data.caller_pid = task_tgid_nr(caller);
 	data.target_uid = task_uid(p).val;
 	data.flag = 0;
 
@@ -186,6 +176,7 @@ int sig_report(struct task_struct *p)
 		if (ret < 0) {
 			stat->data.report_fail_count++;
 			stat->data.report_fail_from_windowstart++;
+			pr_err("sig_report error\n");
 		} else {
 			stat->data.report_suc_count++;
 			stat->data.report_suc_from_windowstart++;
@@ -200,7 +191,7 @@ int sig_report(struct task_struct *p)
 	return ret;
 }
 
-int binder_report(struct task_struct *p, int code, const char *str, int flag)
+int binder_report(struct task_struct *caller, struct task_struct *p, int flag)
 {
 	int ret = RET_OK;
 	struct priv_data data;
@@ -210,29 +201,33 @@ int binder_report(struct task_struct *p, int code, const char *str, int flag)
 
 	memset(&data, 0, sizeof(struct priv_data));
 	data.target_uid = -1;
-	data.flag = flag;
-	data.code = code;
-	strlcpy(data.rpcname, str, INTERFACETOKEN_BUFF_SIZE);
+	data.caller_pid = -1;
+        data.flag = flag;
+
 	if(p)
 		data.target_uid = task_uid(p).val;
+	if(caller)
+		data.caller_pid = task_tgid_nr(caller);
 
 	walltime = ktime_to_us(ktime_get());
+	if (p && thread_group_is_frozen(p)) {
+		ret = mod_sendmsg(MSG_TO_USER, MOD_BINDER, &data);
+		stat = &freecess_info.mod_reportstat[MOD_BINDER];
+		spin_lock_irqsave(&stat->lock, flags);
+		if (ret < 0) {
+			stat->data.report_fail_count++;
+			stat->data.report_fail_from_windowstart++;
+			pr_err("binder_report error\n");
+		} else {
+			stat->data.report_suc_count++;
+			stat->data.report_suc_from_windowstart++;
+		}
 
-	ret = mod_sendmsg(MSG_TO_USER, MOD_BINDER, &data);
-	stat = &freecess_info.mod_reportstat[MOD_BINDER];
-	spin_lock_irqsave(&stat->lock, flags);
-	if (ret < 0) {
-		stat->data.report_fail_count++;
-		stat->data.report_fail_from_windowstart++;
-	} else {
-		stat->data.report_suc_count++;
-		stat->data.report_suc_from_windowstart++;
+		timecost = ktime_to_us(ktime_get()) - walltime;
+		stat->data.total_runtime += timecost;
+		stat->data.runtime_from_windowstart += timecost;
+		spin_unlock_irqrestore(&stat->lock, flags);
 	}
-
-	timecost = ktime_to_us(ktime_get()) - walltime;
-	stat->data.total_runtime += timecost;
-	stat->data.runtime_from_windowstart += timecost;
-	spin_unlock_irqrestore(&stat->lock, flags);
 
 	return ret;
 }
@@ -273,6 +268,7 @@ int cfb_report(int target_uid, const char *reason)
 	int ret = RET_OK;
 	struct priv_data data;
 
+	printk(KERN_INFO "cfb_report: uid %d frozen, reason: %s\n", target_uid, reason);
 	memset(&data, 0, sizeof(struct priv_data));
 	data.target_uid = target_uid;
 	ret = mod_sendmsg(MSG_TO_USER, MOD_CFB, &data);
@@ -291,7 +287,7 @@ static void recv_handler(struct sk_buff *skb)
 		pr_err("recv_handler %s: skb is	NULL!\n", __func__);
 		return;
 	}
-
+	
 	uid = (*NETLINK_CREDS(skb)).uid.val;
 	//only allow system user to communicate with Freecess kernel part.
 	if (uid != 1000) {
@@ -304,36 +300,41 @@ static void recv_handler(struct sk_buff *skb)
 		msglen = NLMSG_PAYLOAD(nlh, 0);
 		payload = (struct kfreecess_msg_data*)NLMSG_DATA(nlh);
 
-		if (payload->src_portid < 0) {
-			pr_err("USER_HOOK_CALLBACK %s: src_portid %d is not valid!\n", __func__, payload->src_portid);
-			return;
-		}
+		if (msglen >= (sizeof(struct kfreecess_msg_data))) {
+			if (payload->src_portid < 0) {
+				pr_err("USER_HOOK_CALLBACK %s: src_portid %d is not valid!\n", __func__, payload->src_portid);
+				return;
+			}
 
-		if (payload->dst_portid != KERNEL_ID_NETLINK) {
-			pr_err("USER_HOOK_CALLBACK %s: dst_portid is %d not kernel!\n", __func__, payload->dst_portid);
-			return;
-		}
-		
-		if (!check_mod_type(payload->mod)) {
-			pr_err("USER_HOOK_CALLBACK %s: mod %d is not valid!\n", __func__, payload->mod);
-			return;
-		}
+			if (payload->dst_portid != KERNEL_ID_NETLINK) {
+				pr_err("USER_HOOK_CALLBACK %s: dst_portid is %d not kernel!\n", __func__, payload->dst_portid);
+				return;
+			}
 
-		switch (payload->type) {
-		case LOOPBACK_MSG:
-			atomic_set(&bind_port[payload->mod], payload->src_portid);
-			freecess_fw_version = FREECESS_PEER_VERSION(payload->version);
-			dump_kfreecess_msg(payload);
-			mod_sendmsg(LOOPBACK_MSG, payload->mod, NULL);
-			break;
-		case MSG_TO_KERN:
-			if (mod_recv_handler[payload->mod])
-				mod_recv_handler[payload->mod](payload, sizeof(struct kfreecess_msg_data));
-			break;
+			if (!check_mod_type(payload->mod)) {
+				pr_err("USER_HOOK_CALLBACK %s: mod %d is not valid!\n", __func__, payload->mod);
+				return;
+			}
+			
+			switch (payload->type) {
+			case LOOPBACK_MSG:
+				atomic_set(&bind_port[payload->mod], payload->src_portid);
+				dump_kfreecess_msg(payload);
+				mod_sendmsg(LOOPBACK_MSG, payload->mod, NULL);
+				break;
+			case MSG_TO_KERN:
+				if (mod_recv_handler[payload->mod])
+					mod_recv_handler[payload->mod](payload, sizeof(struct kfreecess_msg_data));
+				else
+					dump_kfreecess_msg(payload);
+				break;
 
-		default:
-			pr_err("msg type is valid %d\n", payload->type);
-			break;
+			default:
+				pr_err("msg type is valid %d\n", payload->type);
+				break;
+			}
+		} else {
+			pr_err("%s: length err msglen %d  struct kfreecess_msg_data %lu!\n",  __func__, msglen, sizeof(struct kfreecess_msg_data));
 		}
 	}
 }

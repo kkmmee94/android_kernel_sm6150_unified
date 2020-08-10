@@ -26,7 +26,6 @@
 #include <linux/security.h>
 #include <linux/uio.h>
 #include <linux/uaccess.h>
-#include <keys/request_key_auth-type.h>
 #include "internal.h"
 
 #ifdef CONFIG_KEYS_SUPPORT_STLOG

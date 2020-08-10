@@ -1470,7 +1470,7 @@ static int fuse_dir_open(struct inode *inode, struct file *file)
 
 static int fuse_dir_release(struct inode *inode, struct file *file)
 {
-	fuse_release_common(file, true);
+	fuse_release_common(file, FUSE_RELEASEDIR);
 
 	return 0;
 }

@@ -4734,9 +4734,9 @@ static bool need_remote_flush(u64 old, u64 new)
 }
 
 static u64 mmu_pte_write_fetch_gpte(struct kvm_vcpu *vcpu, gpa_t *gpa,
-				    int *bytes)
+				    const u8 *new, int *bytes)
 {
-	u64 gentry = 0;
+	u64 gentry;
 	int r;
 
 	/*
@@ -4748,12 +4748,22 @@ static u64 mmu_pte_write_fetch_gpte(struct kvm_vcpu *vcpu, gpa_t *gpa,
 		/* Handle a 32-bit guest writing two halves of a 64-bit gpte */
 		*gpa &= ~(gpa_t)7;
 		*bytes = 8;
-	}
-
-	if (*bytes == 4 || *bytes == 8) {
-		r = kvm_vcpu_read_guest_atomic(vcpu, *gpa, &gentry, *bytes);
+		r = kvm_vcpu_read_guest(vcpu, *gpa, &gentry, 8);
 		if (r)
 			gentry = 0;
+		new = (const u8 *)&gentry;
+	}
+
+	switch (*bytes) {
+	case 4:
+		gentry = *(const u32 *)new;
+		break;
+	case 8:
+		gentry = *(const u64 *)new;
+		break;
+	default:
+		gentry = 0;
+		break;
 	}
 
 	return gentry;
@@ -4866,6 +4876,8 @@ static void kvm_mmu_pte_write(struct kvm_vcpu *vcpu, gpa_t gpa,
 
 	pgprintk("%s: gpa %llx bytes %d\n", __func__, gpa, bytes);
 
+	gentry = mmu_pte_write_fetch_gpte(vcpu, &gpa, new, &bytes);
+
 	/*
 	 * No need to care whether allocation memory is successful
 	 * or not since pte prefetch is skiped if it does not have
@@ -4874,9 +4886,6 @@ static void kvm_mmu_pte_write(struct kvm_vcpu *vcpu, gpa_t gpa,
 	mmu_topup_memory_caches(vcpu);
 
 	spin_lock(&vcpu->kvm->mmu_lock);
-
-	gentry = mmu_pte_write_fetch_gpte(vcpu, &gpa, &bytes);
-
 	++vcpu->kvm->stat.mmu_pte_write;
 	kvm_mmu_audit(vcpu, AUDIT_PRE_PTE_WRITE);
 
@@ -5418,30 +5427,13 @@ static bool kvm_has_zapped_obsolete_pages(struct kvm *kvm)
 	return unlikely(!list_empty_careful(&kvm->arch.zapped_obsolete_pages));
 }
 
-void kvm_mmu_invalidate_mmio_sptes(struct kvm *kvm, u64 gen)
+void kvm_mmu_invalidate_mmio_sptes(struct kvm *kvm, struct kvm_memslots *slots)
 {
-	gen &= MMIO_GEN_MASK;
-
 	/*
-	 * Shift to eliminate the "update in-progress" flag, which isn't
-	 * included in the spte's generation number.
-	 */
-	gen >>= 1;
-
-	/*
-	 * Generation numbers are incremented in multiples of the number of
-	 * address spaces in order to provide unique generations across all
-	 * address spaces.  Strip what is effectively the address space
-	 * modifier prior to checking for a wrap of the MMIO generation so
-	 * that a wrap in any address space is detected.
-	 */
-	gen &= ~((u64)KVM_ADDRESS_SPACE_NUM - 1);
-
-	/*
-	 * The very rare case: if the MMIO generation number has wrapped,
+	 * The very rare case: if the generation-number is round,
 	 * zap all shadow pages.
 	 */
-	if (unlikely(gen == 0)) {
+	if (unlikely((slots->generation & MMIO_GEN_MASK) == 0)) {
 		kvm_debug_ratelimited("kvm: zapping shadow pages for mmio generation wraparound\n");
 		kvm_mmu_invalidate_zap_all_pages(kvm);
 	}
