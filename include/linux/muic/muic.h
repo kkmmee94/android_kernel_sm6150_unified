@@ -106,8 +106,7 @@ typedef enum {
 	HV_TRANS_FAST_CHARGE_PING_RESPONSE = 4,
 	HV_TRANS_VBUS_BOOST = 5,
 	HV_TRANS_VBUS_REDUCE = 6,
-	HV_TRANS_FAST_CHARGE_REOPEN = 7,
-	HV_TRANS_MAX_NUM = 8,
+	HV_TRANS_MAX_NUM = 7,
 } muic_hv_transaction_t;
 
 /* bootparam SWITCH_SEL */
