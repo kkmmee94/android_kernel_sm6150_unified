@@ -41,8 +41,15 @@ else ifdef CONFIG_SEC_A70SQ_PROJECT
 fw-external-$(CONFIG_SENSORS_A96T3X6) += abov/a96t356_a70sq.bin
 fw-external-$(CONFIG_SENSORS_A96T3X6_SUB) += abov/a96t356_a70sq_sub.bin
 else ifdef CONFIG_SEC_A71_PROJECT
+ifdef CONFIG_SEC_A71_CAN_PROJECT
+fw-external-$(CONFIG_SENSORS_A96T3X6) += abov/a96t356_a71_can.bin
+fw-external-$(CONFIG_SENSORS_A96T3X6_SUB) += abov/a96t356_a71_sub_can.bin
+else
 fw-external-$(CONFIG_SENSORS_A96T3X6) += abov/a96t356_a71.bin
 fw-external-$(CONFIG_SENSORS_A96T3X6_SUB) += abov/a96t356_a71_sub.bin
+endif
+else ifdef CONFIG_SEC_A70S_PROJECT
+fw-external-$(CONFIG_SENSORS_A96T3X6) += abov/a96t346_a70q_eur.bin
 endif
 
 fw-external-$(CONFIG_TOUCHSCREEN_NOVATEK_NT36672) += tsp_novatek/nt36672_a60.bin tsp_novatek/nt36672_m40.bin \
