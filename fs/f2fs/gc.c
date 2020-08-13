@@ -734,6 +734,8 @@ static int move_data_block(struct inode *inode, block_t bidx,
 	int err = 0;
 	bool lfs_mode = test_opt(fio.sbi, LFS);
 
+	f2fs_cond_set_fua(&fio);
+
 	/* do not read out */
 	page = f2fs_grab_cache_page(inode->i_mapping, bidx, false);
 	if (!page)
@@ -934,6 +936,7 @@ static int move_data_page(struct inode *inode, block_t bidx, int gc_type,
 		};
 		bool is_dirty = PageDirty(page);
 
+		f2fs_cond_set_fua(&fio);
 retry:
 		f2fs_wait_on_page_writeback(page, DATA, true, true);
 

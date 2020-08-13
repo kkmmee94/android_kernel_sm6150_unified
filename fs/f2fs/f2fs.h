@@ -1268,6 +1268,15 @@ struct f2fs_sec_stat_info {
 	u32 max_undiscard_blks;		/* # of undiscard blocks */
 };
 
+struct f2fs_sec_fsck_info {
+	u64 fsck_read_bytes;
+	u64 fsck_written_bytes;
+	u64 fsck_elapsed_time;
+	u32 fsck_exit_code;
+	u32 valid_node_count;
+	u32 valid_inode_count;
+};
+
 struct f2fs_sb_info {
 	struct super_block *sb;			/* pointer to VFS super block */
 	struct proc_dir_entry *s_proc;		/* proc entry */
@@ -1450,6 +1459,9 @@ struct f2fs_sb_info {
 	__u32 s_chksum_seed;
 
 	struct f2fs_sec_stat_info sec_stat;
+	struct f2fs_sec_fsck_info sec_fsck_stat;
+
+	unsigned int s_sec_cond_fua_mode;
 };
 
 struct f2fs_private_dio {
@@ -1541,6 +1553,7 @@ static inline unsigned int f2fs_time_to_wait(struct f2fs_sb_info *sbi,
  *   - rsvd
  */
 void f2fs_set_sb_extra_flag(struct f2fs_sb_info *sbi, int flag);
+void f2fs_get_fsck_stat(struct f2fs_sb_info *sbi);
 
 /*
  * Inline functions
@@ -2423,6 +2436,41 @@ static inline void f2fs_change_bit(unsigned int nr, char *addr)
 	addr += (nr >> 3);
 	mask = 1 << (7 - (nr & 0x07));
 	*addr ^= mask;
+}
+
+
+enum F2FS_SEC_FUA_MODE {
+	F2FS_SEC_FUA_NONE = 0,
+	F2FS_SEC_FUA_ROOT,
+	F2FS_SEC_FUA_DIR,
+
+	NR_F2FS_SEC_FUA_MODE,
+};
+
+#define __f2fs_is_cold_node(page)			\
+	(le32_to_cpu(F2FS_NODE(page)->footer.flag) & (1 << COLD_BIT_SHIFT))
+
+static inline void f2fs_cond_set_fua(struct f2fs_io_info *fio) 
+{
+	if (!fio->sbi->s_sec_cond_fua_mode) 
+		return;
+
+	if (fio->type == META)
+		fio->op_flags |= REQ_PREFLUSH | REQ_FUA;
+	else if ((fio->page && IS_NOQUOTA(fio->page->mapping->host)) || 
+			(fio->ino == f2fs_qf_ino(fio->sbi->sb, USRQUOTA) ||
+			fio->ino == f2fs_qf_ino(fio->sbi->sb, GRPQUOTA) ||
+			fio->ino == f2fs_qf_ino(fio->sbi->sb, PRJQUOTA)))
+		fio->op_flags |= REQ_FUA;
+	else if (fio->sbi->s_sec_cond_fua_mode == F2FS_SEC_FUA_ROOT &&
+			fio->ino == F2FS_ROOT_INO(fio->sbi))
+		fio->op_flags |= REQ_FUA;
+	else if (fio->sbi->s_sec_cond_fua_mode == F2FS_SEC_FUA_DIR && fio->page &&
+		((fio->type == NODE && !__f2fs_is_cold_node(fio->page)) ||
+		(fio->type == DATA && S_ISDIR(fio->page->mapping->host->i_mode))))
+		fio->op_flags |= REQ_FUA;
+	// Directory Inode or Indirect Node -> COLD_BIT X
+	// ref. set_cold_node()
 }
 
 /*

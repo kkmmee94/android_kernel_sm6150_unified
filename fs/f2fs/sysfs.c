@@ -32,6 +32,12 @@ enum {
 	RESERVED_BLOCKS,	/* struct f2fs_sb_info */
 };
 
+const char *sec_fua_mode_names[NR_F2FS_SEC_FUA_MODE] = {
+	"NONE",
+	"ROOT",
+	"ALL",
+};
+
 struct f2fs_attr {
 	struct attribute attr;
 	ssize_t (*show)(struct f2fs_attr *, struct f2fs_sb_info *, char *);
@@ -247,7 +253,28 @@ static ssize_t f2fs_sbi_show(struct f2fs_attr *a,
 			"FS_PERROR",	sbi->sec_stat.fs_por_error,
 			"FS_ERROR",	sbi->sec_stat.fs_error,
 			"MAX_UNDSCD",	sbi->sec_stat.max_undiscard_blks);
-	}
+	} else if (!strcmp(a->attr.name, "sec_fsck_stat")) {
+		return snprintf(buf, PAGE_SIZE,
+		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%u\","
+		"\"%s\":\"%u\",\"%s\":\"%u\"\n",
+			"FSCK_RBYTES",	sbi->sec_fsck_stat.fsck_read_bytes,
+			"FSCK_WBYTES",	sbi->sec_fsck_stat.fsck_written_bytes,
+			"FSCK_TIME_MS",	sbi->sec_fsck_stat.fsck_elapsed_time,
+			"FSCK_EXIT",	sbi->sec_fsck_stat.fsck_exit_code,
+			"FSCK_VNODES",	sbi->sec_fsck_stat.valid_node_count,
+			"FSCK_VINODES",	sbi->sec_fsck_stat.valid_inode_count);
+	} else if (!strcmp(a->attr.name, "sec_fua_mode")) {
+		int len = 0, i;
+		for (i = 0; i < NR_F2FS_SEC_FUA_MODE; i++) {
+			if (i == sbi->s_sec_cond_fua_mode)
+				len += snprintf(buf, PAGE_SIZE, "[%s] ", 
+						sec_fua_mode_names[i]);
+			else
+				len += snprintf(buf, PAGE_SIZE, "%s ", 
+						sec_fua_mode_names[i]);
+		}
+		return len;
+ 	}
 
 	ui = (unsigned int *)(ptr + a->offset);
 
@@ -341,6 +368,14 @@ out:
 		sbi->sec_stat.fs_error = 0;
 		sbi->sec_stat.max_undiscard_blks = 0;
 		return count;
+	} else if (!strcmp(a->attr.name, "sec_fsck_stat")) {
+		sbi->sec_fsck_stat.fsck_read_bytes = 0;
+		sbi->sec_fsck_stat.fsck_written_bytes = 0;
+		sbi->sec_fsck_stat.fsck_elapsed_time = 0;
+		sbi->sec_fsck_stat.fsck_exit_code = 0;
+		sbi->sec_fsck_stat.valid_node_count = 0;
+		sbi->sec_fsck_stat.valid_inode_count = 0;
+		return count;
 	}
 
 	ui = (unsigned int *)(ptr + a->offset);
@@ -415,6 +450,16 @@ out:
 		sbi->iostat_enable = !!t;
 		if (!sbi->iostat_enable)
 			f2fs_reset_iostat(sbi);
+		return count;
+	} else if (!strcmp(a->attr.name, "sec_fua_mode")) {
+		const char *mode= strim((char *)buf);
+		int idx;
+
+		for (idx = 0; idx < NR_F2FS_SEC_FUA_MODE; idx++) {
+			if(!strcmp(mode, sec_fua_mode_names[idx]))
+				sbi->s_sec_cond_fua_mode = idx;
+		}
+
 		return count;
 	}
 
@@ -568,6 +613,8 @@ F2FS_RW_ATTR(FAULT_INFO_TYPE, f2fs_fault_info, inject_type, inject_type);
 #endif
 F2FS_RW_ATTR(F2FS_SBI, f2fs_sb_info, sec_gc_stat, sec_stat);
 F2FS_RW_ATTR(F2FS_SBI, f2fs_sb_info, sec_io_stat, sec_stat);
+F2FS_RW_ATTR(F2FS_SBI, f2fs_sb_info, sec_fsck_stat, sec_fsck_stat);
+F2FS_RW_ATTR(F2FS_SBI, f2fs_sb_info, sec_fua_mode, s_sec_cond_fua_mode);
 F2FS_GENERAL_RO_ATTR(dirty_segments);
 F2FS_GENERAL_RO_ATTR(lifetime_write_kbytes);
 F2FS_GENERAL_RO_ATTR(sec_fs_stat);
@@ -625,6 +672,8 @@ static struct attribute *f2fs_attrs[] = {
 	ATTR_LIST(extension_list),
 	ATTR_LIST(sec_gc_stat),
 	ATTR_LIST(sec_io_stat),
+	ATTR_LIST(sec_fsck_stat),
+	ATTR_LIST(sec_fua_mode),
 #ifdef CONFIG_F2FS_FAULT_INJECTION
 	ATTR_LIST(inject_rate),
 	ATTR_LIST(inject_type),
