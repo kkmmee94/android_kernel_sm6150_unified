@@ -36,7 +36,7 @@ static int mad_mic_bias;
 static int get_jack_status(void)
 {
 	struct snd_soc_codec *codec = wcd_codec;
-	struct wcd937x_mbhc *wcd937x_mbhc;
+	struct wcd937x_mbhc *wcd937x_mbhc = wcd937x_soc_get_mbhc(codec);
 	struct wcd_mbhc *mbhc = &wcd937x_mbhc->wcd_mbhc;
 	int value = 0;
 
@@ -52,7 +52,7 @@ static int get_jack_status(void)
 static int get_key_status(void)
 {
 	struct snd_soc_codec *codec = wcd_codec;
-	struct wcd937x_mbhc *wcd937x_mbhc;
+	struct wcd937x_mbhc *wcd937x_mbhc = wcd937x_soc_get_mbhc(codec);
 	struct wcd_mbhc *mbhc = &wcd937x_mbhc->wcd_mbhc;
 	int value = -1;
 
@@ -108,6 +108,7 @@ void register_mbhc_jack_cb(struct snd_soc_codec *codec)
 	audio_register_jack_state_cb(get_jack_status);
 	audio_register_key_state_cb(get_key_status);
 #ifndef CONFIG_SND_SOC_WCD_MBHC
+	audio_register_mic_adc_cb(get_key_status);
 #endif
 #endif
 #ifdef CONFIG_SND_SOC_WCD_DSP_MGR
