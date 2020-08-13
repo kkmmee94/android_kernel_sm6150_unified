@@ -125,6 +125,36 @@ static inline int is_five_enabled(void)
 {
 	return five_enabled;
 }
+
+int five_fcntl_debug(struct file *file, void __user *argp)
+{
+	struct inode *inode;
+	struct five_stat stat = {0};
+	struct integrity_iint_cache *iint;
+
+	if (unlikely(!file || !argp))
+		return -EINVAL;
+
+	inode = file_inode(file);
+
+	inode_lock(inode);
+	iint = integrity_inode_get(inode);
+	if (unlikely(!iint)) {
+		inode_unlock(inode);
+		return -ENOMEM;
+	}
+
+	stat.cache_status = five_get_cache_status(iint);
+	stat.cache_iversion = inode_query_iversion(iint->inode);
+	stat.inode_iversion = inode_query_iversion(inode);
+
+	inode_unlock(inode);
+
+	if (unlikely(copy_to_user(argp, &stat, sizeof(stat))))
+		return -EFAULT;
+
+	return 0;
+}
 #else
 static int __init init_fs(void)
 {
@@ -542,7 +572,7 @@ out:
 	result->iint = iint;
 	result->fn = function;
 	result->xattr = xattr_value;
-	result->xattr_len = xattr_len;
+	result->xattr_len = (size_t)xattr_len;
 
 	if (!iint || five_get_cache_status(iint) == FIVE_FILE_UNKNOWN
 			|| five_get_cache_status(iint) == FIVE_FILE_FAIL)
