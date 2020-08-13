@@ -30,7 +30,7 @@ static const char *haptic_feature_id_str[]
 	= {"wave", "sine", "silence", "illegal"};
 
 #define OFFSET_SET_INDEX	10
-#define MAX_NUM_SET_INDEX	50
+#define MAX_NUM_SET_INDEX	70
 #define DEFAULT_TONE_SET_INDEX	1
 #define SILENCE_SET_INDEX	6
 #define LOW_TEMP_INDEX	34 /* special index for low temperature */
@@ -38,9 +38,11 @@ static const char *haptic_feature_id_str[]
 static const int set_index_tbl[MAX_NUM_SET_INDEX] = {
 	 2,  3, 14, 15, 16,  4, 18, 19, 20, 21,
 	22, 23, 24,  6,  6,  6,  6,  6,  6,  6,
-	 6,  2,  2,  6,  6,  6,  6,  6,  6,  6,
-	 6,  2,  2,  2,  6,  6,  6,  6,  6,  6,
-	 2,  6,  6,  6,  2, 16,  6,  6,  6,  6
+	 6,  2,  2,  2,  6,  2,  6,  6,  6,  6,
+	 6,  2,  2,  2,  6,  6,  2,  2,  2,  2,
+	 2,  2,  2,  2,  2, 16,  6,  6,  2,  2,
+	 2,  2,  6,  6,  6,  6,  6,  6,  6,  6,
+	 6,  6,  6,  6,  6,  6,  6,  6,  6,  6
 };
 
 static const char *haptic_feature_id(int id)
