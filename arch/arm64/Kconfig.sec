@@ -123,7 +123,13 @@ config SEC_A70S_SWA_PROJECT
         bool "Samsung A70S SWA OPEN Project"
         help
           Support for Samsung A70S SWA OPEN Project
-		  
+
+config SEC_A70S_CHN_PROJECT
+        depends on SEC_A70S_PROJECT
+        default n
+        bool "Samsung A70S CHN OPEN Project"
+        help
+          Support for Samsung A70S CHN OPEN Project		  
 
 config SEC_R1Q_PROJECT
         depends on ARCH_SM6150
@@ -243,12 +249,26 @@ config SEC_A71_PROJECT
         help
           Support for Samsung A71 Project
 
+config SEC_A71_EUR_LDU_PROJECT
+        depends on SEC_A71_PROJECT
+        default n
+        bool "Samsung A71 EUR LDU Project"
+        help
+          Support for Samsung A71 EUR LDU Project
+
 config SEC_A71_SWA_PROJECT
         depends on SEC_A71_PROJECT
         default n
         bool "Samsung A71 SWA OPEN Project"
         help
           Support for Samsung A71 SWA OPEN Project
+		  
+config SEC_A71_CAN_PROJECT
+        depends on SEC_A71_PROJECT
+        default n
+        bool "Samsung A71 CAN SINGLE Project"
+        help
+          Support for Samsung A71 CAN SINGLE Project		  
 
 config SEC_A71_EUR_PROJECT
         depends on SEC_A71_PROJECT
@@ -256,17 +276,3 @@ config SEC_A71_EUR_PROJECT
         bool "Samsung A71 EUR OPEN Project"
         help
           Support for Samsung A71 EUR OPEN Project
-		  
-config SEC_A71_CAN_PROJECT
-        depends on SEC_A71_PROJECT
-        default n
-        bool "Samsung A71 CAN SINGLE Project"
-        help
-          Support for Samsung A71 CAN SINGLE Project
-
-config SEC_A71_EUR_LDU_PROJECT
-        depends on SEC_A71_PROJECT
-        default n
-        bool "Samsung A71 EUR LDU Project"
-        help
-          Support for Samsung A71 EUR LDU Project

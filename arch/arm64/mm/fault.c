@@ -156,6 +156,9 @@ void show_pte(unsigned long addr)
 	} else {
 		pr_alert("[%016lx] address between user and kernel address ranges\n",
 			 addr);
+#ifdef CONFIG_SEC_USER_RESET_DEBUG
+		sec_debug_store_pte((unsigned long)addr, 1);
+#endif
 		return;
 	}
 
