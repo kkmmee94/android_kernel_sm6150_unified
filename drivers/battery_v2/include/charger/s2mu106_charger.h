@@ -167,7 +167,6 @@ extern bool mfc_fw_update;
 
 #define CHARGER_OFF_MODE	0
 #define BUCK_MODE		1
-#define BST_MODE		2
 #define CHG_MODE		3
 #define OTG_BST_MODE		6
 

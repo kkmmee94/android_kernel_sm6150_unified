@@ -97,6 +97,7 @@ static void update_sw_icl_max(struct smb_charger *chg, int pst);
 static int smblib_update_jeita(struct smb_charger *chg, u32 *thresholds, int type);
 extern int get_rid_type(void);
 static int settled_icl = 0;
+static int max_icl = 0;
 #endif
 
 
@@ -1041,7 +1042,11 @@ void smblib_hvdcp_exit_config(struct smb_charger *chg)
 	if (rc < 0)
 		return;
 
+#if defined(CONFIG_BATTERY_SAMSUNG_USING_QC)
+	if (1) { /* don`t check this like previous OS */
+#else
 	if (stat & (QC_3P0_BIT | QC_2P0_BIT)) {
+#endif
 		/* force HVDCP to 5V */
 		smblib_masked_write(chg, USBIN_OPTIONS_1_CFG_REG,
 				HVDCP_AUTONOMOUS_MODE_EN_CFG_BIT, 0);
@@ -2190,7 +2195,7 @@ int smblib_get_prop_batt_status(struct smb_charger *chg,
 	 * If charge termination WA is active and has suspended charging, then
 	 * continue reporting charging status as FULL.
 	 */
-	if (is_client_vote_enabled(chg->usb_icl_votable,
+	if (is_client_vote_enabled_locked(chg->usb_icl_votable,
 						CHG_TERMINATION_VOTER)) {
 		val->intval = POWER_SUPPLY_STATUS_FULL;
 		return 0;
@@ -2262,8 +2267,9 @@ int smblib_get_prop_batt_charge_type(struct smb_charger *chg,
 	}
 
 #if defined(CONFIG_BATTERY_SAMSUNG_USING_QC)
-	if (settled_icl < SLOW_CHARGING_CURRENT_STANDARD  && val->intval != POWER_SUPPLY_CHARGE_TYPE_NONE 
-			&& chg->real_charger_type != POWER_SUPPLY_TYPE_USB_PD && settled_icl != 0) {
+	if (settled_icl < SLOW_CHARGING_CURRENT_STANDARD  && max_icl > 100000
+		&& val->intval != POWER_SUPPLY_CHARGE_TYPE_NONE 
+		&& chg->real_charger_type != POWER_SUPPLY_TYPE_USB_PD) {
 		pr_info("%s: slow charging on \n",__func__);
 		val->intval = POWER_SUPPLY_CHARGE_TYPE_SLOW;
 	}
@@ -3591,7 +3597,7 @@ int smblib_get_prop_usb_online(struct smb_charger *chg,
 		return rc;
 	}
 
-	if (is_client_vote_enabled(chg->usb_icl_votable,
+	if (is_client_vote_enabled_locked(chg->usb_icl_votable,
 					CHG_TERMINATION_VOTER)) {
 		rc = smblib_get_prop_usb_present(chg, val);
 		return rc;
@@ -5164,10 +5170,6 @@ irqreturn_t default_irq_handler(int irq, void *data)
 	struct smb_charger *chg = irq_data->parent_data;
 	u8 stat;
 	int rc = 0; 
-	int max_icl = 0;
-#if !defined(CONFIG_BATTERY_SAMSUNG_USING_QC)
-	int settled_icl = 0;
-#endif
 
 	smblib_dbg(chg, PR_INTERRUPT, "IRQ: %s\n", irq_data->name);
 
@@ -7856,6 +7858,41 @@ static void smblib_lpd_detach_work(struct work_struct *work)
 	if (chg->lpd_stage == LPD_STAGE_FLOAT_CANCEL)
 		chg->lpd_stage = LPD_STAGE_NONE;
 }
+
+
+#if defined(CONFIG_PM6150_USB_FALSE_DETECTION_WA_BY_GND) && !defined(CONFIG_SEC_FACTORY)
+void smblib_drp_enable(struct smb_charger * chg)
+{
+	int rc;
+	union power_supply_propval pval; 
+	
+	pr_info("[USB_WA] %s \n", __func__);
+	
+	pval.intval = POWER_SUPPLY_TYPEC_PR_DUAL;
+	rc = smblib_set_prop_typec_power_role(chg, &pval);
+	if (rc < 0) {
+		smblib_err(chg, "Couldn't write 0x%02x to TYPE_C_INTRPT_ENB_SOFTWARE_CTRL rc=%d\n",
+			pval.intval, rc);
+	}
+}
+EXPORT_SYMBOL(smblib_drp_enable);
+
+void smblib_drp_disable(struct smb_charger * chg)
+{
+	int rc;
+	union power_supply_propval pval;
+	
+	pr_info("[USB_WA] %s \n", __func__);
+	
+	pval.intval = POWER_SUPPLY_TYPEC_PR_NONE;
+	rc = smblib_set_prop_typec_power_role(chg, &pval);
+	if (rc < 0) {
+		smblib_err(chg, "Couldn't write 0x%02x to TYPE_C_INTRPT_ENB_SOFTWARE_CTRL rc=%d\n",
+			pval.intval, rc);
+	}
+}
+EXPORT_SYMBOL(smblib_drp_disable);
+#endif
 
 static char *dr_mode_text[] = {
 	"ufp", "dfp", "none"

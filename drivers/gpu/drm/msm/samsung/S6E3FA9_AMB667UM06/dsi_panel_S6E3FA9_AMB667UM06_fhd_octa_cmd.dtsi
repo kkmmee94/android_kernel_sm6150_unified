@@ -91,6 +91,7 @@
 		samsung,panel-lpm-enable;
 		samsung,support_factory_panel_swap;
 		samsung,support_dynamic_mipi_clk;
+
 		/* *************************************************************
 		 *  Tx
 		 * *************************************************************
@@ -331,7 +332,7 @@
 		 * Dynamic MIPI Clock
 		 * **************************************************************
 		 */
-
+		
 		samsung,ffc_cmds_line_position = <2>;
 		
 		samsung,ffc_tx_cmds_revA = [

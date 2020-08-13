@@ -438,6 +438,9 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(voltage_vph),
 	POWER_SUPPLY_ATTR(chip_version),
 	POWER_SUPPLY_ATTR(therm_icl_limit),
+#if defined(CONFIG_BATTERY_SAMSUNG_USING_QC)
+	POWER_SUPPLY_ATTR(pdp_limit_w),
+#endif
 	POWER_SUPPLY_ATTR(dc_reset),
 	POWER_SUPPLY_ATTR(scale_mode_en),
 	POWER_SUPPLY_ATTR(voltage_max_limit),

@@ -25,6 +25,7 @@
 #include "rmnet_descriptor.h"
 #include <soc/qcom/rmnet_qmi.h>
 #include <soc/qcom/qmi_rmnet.h>
+#include <linux/proc_fs.h>
 
 /* Locking scheme -
  * The shared resource which needs to be protected is realdev->rx_handler_data.
@@ -706,6 +707,59 @@ int rmnet_get_powersave_notif(void *port)
 EXPORT_SYMBOL(rmnet_get_powersave_notif);
 #endif
 
+#if defined(CONFIG_ARGOS)
+#define PROC_BUFSIZE 20
+
+static ssize_t rmnet_set_dl_flush_count(struct file *file,
+					const char __user *ubuf,
+					size_t count, loff_t *ppos)
+{
+	char buf[PROC_BUFSIZE];
+	u32 val;
+
+	if (*ppos > 0 || count > PROC_BUFSIZE)
+		return -EFAULT;
+
+	if (copy_from_user(buf, ubuf, count))
+		return -EFAULT;
+
+	if (kstrtou32(buf, 0, &val))
+		return -EFAULT;
+
+	if (val < 0 || val > 16)
+		return -EINVAL;
+
+	config_flushcount = val;
+	pr_err("%s count:%d\n", __func__, config_flushcount);
+	*ppos = strlen(buf);
+	return *ppos;
+}
+
+static ssize_t rmnet_get_dl_flush_count(struct file *file,
+					char __user *ubuf,
+					size_t count, loff_t *ppos)
+{
+	char buf[PROC_BUFSIZE];
+	int len = 0;
+
+	if (*ppos > 0 || count < PROC_BUFSIZE)
+		return 0;
+	len += snprintf(buf, PROC_BUFSIZE, "%d\n", config_flushcount);
+
+	if (copy_to_user(ubuf, buf, len))
+		return -EFAULT;
+	pr_err("%s count:%d\n",  __func__, config_flushcount);
+	*ppos = len;
+	return len;
+}
+
+static const struct file_operations rmnet_fops = {
+	.owner		= THIS_MODULE,
+	.read		= rmnet_get_dl_flush_count,
+	.write		= rmnet_set_dl_flush_count,
+};
+#endif
+
 /* Startup/Shutdown */
 
 static int __init rmnet_init(void)
@@ -721,6 +775,18 @@ static int __init rmnet_init(void)
 		unregister_netdevice_notifier(&rmnet_dev_notifier);
 		return rc;
 	}
+
+#if defined(CONFIG_ARGOS)
+{
+	struct proc_dir_entry *pde;
+
+	/* default gro flush count*/
+	config_flushcount = 2;
+	pde = proc_create("rmnet_flush_count", 0444, NULL, &rmnet_fops);
+	if (!pde)
+		return -ENOMEM;
+}
+#endif
 	return rc;
 }
 
@@ -728,6 +794,9 @@ static void __exit rmnet_exit(void)
 {
 	unregister_netdevice_notifier(&rmnet_dev_notifier);
 	rtnl_link_unregister(&rmnet_link_ops);
+#if defined(CONFIG_ARGOS)
+	remove_proc_entry("rmnet_flush_count", NULL);
+#endif
 }
 
 module_init(rmnet_init)

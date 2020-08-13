@@ -384,7 +384,7 @@ static void *usbpd_ipc_log;
 static bool check_vsafe0v = true;
 module_param(check_vsafe0v, bool, 0600);
 
-static int min_sink_current = 900;
+static int min_sink_current = 500;
 module_param(min_sink_current, int, 0600);
 
 static const u32 default_src_caps[] = { 0x36019096 };	/* VSafe5V @ 1.5A */

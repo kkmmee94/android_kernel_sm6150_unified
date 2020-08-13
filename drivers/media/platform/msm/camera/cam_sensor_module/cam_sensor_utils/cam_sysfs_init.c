@@ -249,7 +249,7 @@ static ssize_t front_camera_type_show(struct device *dev,
 		return rc;
 	return 0;
 }
-#elif defined(CONFIG_SEC_A70Q_PROJECT) || defined(CONFIG_SEC_R3Q_PROJECT)
+#elif defined(CONFIG_SEC_A70Q_PROJECT) || defined(CONFIG_SEC_R3Q_PROJECT) || defined(CONFIG_SEC_A70S_PROJECT)
 static ssize_t front_camera_type_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
@@ -445,30 +445,6 @@ static ssize_t rear_module_info_store(struct device *dev,
 
 	return size;
 }
-
-#if defined(CONFIG_SEC_A71_PROJECT)
-char otp_info[5] = "NULL\n";
-static ssize_t rear_otp_show(struct device *dev,
-        struct device_attribute *attr, char *buf)
-{
-        int rc = 0;
-
-        pr_info("[FW_DBG] otp_info : %s\n", otp_info);
-        rc = scnprintf(buf, PAGE_SIZE, "%s", otp_info);
-        if (rc)
-                return rc;
-        return 0;
-}
-
-static ssize_t rear_otp_store(struct device *dev,
-        struct device_attribute *attr, const char *buf, size_t size)
-{
-        pr_info("[FW_DBG] buf : %s\n", buf);
-        scnprintf(otp_info, sizeof(otp_info), "%s", buf);
-
-        return size;
-}
-#endif
 
 #if defined(CONFIG_SAMSUNG_REAR_QUAD)
 char rear4_module_info[SYSFS_MODULE_INFO_SIZE];
@@ -1743,7 +1719,7 @@ static ssize_t rear2_type_show(struct device *dev,
 #endif
 
 
-#if defined(CONFIG_SEC_A70Q_PROJECT) || defined(CONFIG_SEC_A60Q_PROJECT) || defined(CONFIG_SEC_A90Q_PROJECT) || defined(CONFIG_SEC_M40_PROJECT) || defined(CONFIG_SEC_R3Q_PROJECT)
+#if defined(CONFIG_SEC_A70Q_PROJECT) || defined(CONFIG_SEC_A60Q_PROJECT) || defined(CONFIG_SEC_A90Q_PROJECT) || defined(CONFIG_SEC_M40_PROJECT) || defined(CONFIG_SEC_R3Q_PROJECT) || defined(CONFIG_SEC_A70S_PROJECT)
 static ssize_t rear3_type_show(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
@@ -2133,8 +2109,8 @@ static ssize_t ois_power_store(struct device *dev, struct device_attribute *attr
 		break;
 	case '1':
 		cam_ois_power_up(g_o_ctrl);
-		msleep(200);
 		isOisPoweredUp = 1;
+		msleep(200);
 		pr_info("%s: power up", __func__);
 		break;
 
@@ -4341,10 +4317,6 @@ static DEVICE_ATTR(rear_calcheck, S_IRUGO|S_IWUSR|S_IWGRP,
 	rear_cal_data_check_show, rear_cal_data_check_store);
 static DEVICE_ATTR(rear_moduleinfo, S_IRUGO|S_IWUSR|S_IWGRP,
 	rear_module_info_show, rear_module_info_store);
-#if defined(CONFIG_SEC_A71_PROJECT)
-static DEVICE_ATTR(rear_otp, S_IRUGO|S_IWUSR|S_IWGRP,
-        rear_otp_show, rear_otp_store);
-#endif
 static DEVICE_ATTR(isp_core, S_IRUGO|S_IWUSR|S_IWGRP,
 	rear_isp_core_check_show, rear_isp_core_check_store);
 static DEVICE_ATTR(rear_afcal, S_IRUGO, rear_afcal_show, NULL);
@@ -4740,13 +4712,6 @@ static int __init cam_sysfs_init(void)
 			dev_attr_rear_moduleinfo.attr.name);
 		ret = -ENODEV;
 	}
-#if defined(CONFIG_SEC_A71_PROJECT)
-        if (device_create_file(cam_dev_rear, &dev_attr_rear_otp) < 0) {
-                pr_err("Failed to create device file!(%s)!\n",
-                        dev_attr_rear_otp.attr.name);
-                ret = -ENODEV;
-        }
-#endif
 	if (device_create_file(cam_dev_rear, &dev_attr_isp_core) < 0) {
 		pr_err("Failed to create device file!(%s)!\n",
 			dev_attr_isp_core.attr.name);

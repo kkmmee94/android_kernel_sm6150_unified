@@ -19,18 +19,12 @@
 #include "cam_common_util.h"
 #include "cam_packet_util.h"
 
-#if defined(CONFIG_LEDS_S2MU106_FLASH) || defined(CONFIG_LEDS_S2MU107_FLASH)
-extern int muic_afc_set_voltage(int vol);
-extern void pdo_ctrl_by_flash(bool mode);
-#endif
 
 #if defined(CONFIG_SAMSUNG_REAR_TOF) || defined(CONFIG_SAMSUNG_FRONT_TOF)
 struct cam_sensor_ctrl_t *g_s_ctrl_tof;
 int check_pd_ready;
 #endif
-#if defined(CONFIG_SEC_A71_PROJECT)
-extern char otp_info[5];
-#endif
+
 #if defined(CONFIG_USE_CAMERA_HW_BIG_DATA)
 //#define HWB_FILE_OPERATION 1
 uint32_t sec_sensor_position;
@@ -363,7 +357,7 @@ static int32_t cam_sensor_i2c_modes_util(
 				rc);
 			return rc;
 		}
-#if defined(CONFIG_SEC_A90Q_PROJECT) || defined(CONFIG_SEC_A71_PROJECT)
+#if defined(CONFIG_SEC_A90Q_PROJECT) || defined(CONFIG_SEC_A70S_PROJECT) || defined(CONFIG_SEC_A71_PROJECT)
 		if ((i2c_list->i2c_settings.size > 0)
 			&& (i2c_list->i2c_settings.reg_setting[0].reg_addr == STREAM_ON_ADDR_IMX586_S5K4HA || i2c_list->i2c_settings.reg_setting[0].reg_addr == STREAM_ON_ADDR_IMX316)
 			&& (i2c_list->i2c_settings.reg_setting[0].reg_data == 0x0)) {
@@ -766,7 +760,7 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 	struct cam_hw_param *hw_param = NULL;
 #endif
 
-#if defined(CONFIG_SEC_A71_PROJECT)
+#if defined(CONFIG_SEC_A71_PROJECT) || defined(CONFIG_SEC_A70S_PROJECT)
 	uint32_t version_id = 0;
 	uint16_t sensor_id = 0;
 	uint16_t expected_version_id = 0;
@@ -844,7 +838,7 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 			goto free_power_settings;
 		}
 
-#if defined(CONFIG_SEC_A71_PROJECT)
+#if defined(CONFIG_SEC_A71_PROJECT) || defined(CONFIG_SEC_A70S_PROJECT)
 		if (s_ctrl->soc_info.index == 0) { // check Rear GW1
 			sensor_id = s_ctrl->sensordata->slave_info.sensor_id;
 			expected_version_id = s_ctrl->sensordata->slave_info.version_id;
@@ -861,15 +855,10 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 					"Read version id 0x%x,expected_version_id 0x%x", version_id, expected_version_id);
 					if (version_id == expected_version_id && version_id == 0XA0)
 						CAM_INFO(CAM_SENSOR, "Found A0 Sensor");
-					else if (version_id == expected_version_id && version_id == 0XA1){
+					else if (version_id == expected_version_id && version_id == 0XA1)
 						CAM_INFO(CAM_SENSOR, "Found A1 Sensor");
-						strlcpy(otp_info,"0", sizeof(otp_info));
-					}					
-
-					else if (version_id == expected_version_id && version_id == 0XA2){
+					else if (version_id == expected_version_id && version_id == 0XA2)
 						CAM_INFO(CAM_SENSOR, "Found A2 Sensor");
-						strlcpy(otp_info,"1", sizeof(otp_info));
-					}
 					else {
 						CAM_INFO(CAM_SENSOR, "Not matched");
 						rc = -EINVAL;
@@ -1402,16 +1391,6 @@ int cam_sensor_power_up(struct cam_sensor_ctrl_t *s_ctrl)
 	struct cam_hw_param *hw_param = NULL;
 #endif
 
-// Added for PLM P191224-07745 (suggestion from sLSI PMIC team)
-// Set the PMIC voltage to 5V for Flash operation on Rear Sensor
-#if defined(CONFIG_LEDS_S2MU106_FLASH) || defined(CONFIG_LEDS_S2MU107_FLASH)
-	if(s_ctrl->soc_info.index == 0)
-	{
-		pdo_ctrl_by_flash(1);
-		muic_afc_set_voltage(5);
-	}
-#endif
-
 	if (!s_ctrl) {
 		CAM_ERR(CAM_SENSOR, "failed: %pK", s_ctrl);
 		return -EINVAL;
@@ -1564,16 +1543,6 @@ int cam_sensor_power_down(struct cam_sensor_ctrl_t *s_ctrl)
 	struct cam_hw_param *hw_param = NULL;
 #endif
 
-// Added for PLM P191224-07745 (suggestion from sLSI PMIC team)
-// Re-Set the PMIC voltage
-#if defined(CONFIG_LEDS_S2MU106_FLASH) || defined(CONFIG_LEDS_S2MU107_FLASH)
-	if(s_ctrl->soc_info.index == 0)
-	{
-		pdo_ctrl_by_flash(0);
-		muic_afc_set_voltage(9);
-	}
-#endif
-
 	if (!s_ctrl) {
 		CAM_ERR(CAM_SENSOR, "failed: s_ctrl %pK", s_ctrl);
 		return -EINVAL;
@@ -1720,6 +1689,11 @@ int cam_sensor_power_down(struct cam_sensor_ctrl_t *s_ctrl)
 		return -EINVAL;
 	}
 	rc = cam_sensor_util_power_down(power_info, soc_info);
+	
+#if defined(CONFIG_MCLK_I2C_DELAY_FOR_CAM_POWERDOWN)
+    msleep(6); //Add delay for MCLK - I2C TIMING SPEC OUT issue during power down sequence in A70s and A70q
+#endif
+
 	if (rc < 0) {
 		CAM_ERR(CAM_SENSOR, "power down the core is failed:%d", rc);
 		return rc;

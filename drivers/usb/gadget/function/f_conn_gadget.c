@@ -643,6 +643,12 @@ static ssize_t conn_gadget_write(struct file *fp, const char __user *buf,
 			break;
 		}
 
+		if (dev->error) {
+			r = -EIO;
+			printk(KERN_ERR "%s: wait_event_interruptible(), dev->error\n", __func__);
+			break;
+		}
+
 		if (req != 0) {
 			if (count > dev->transfer_size)
 				xfer = dev->transfer_size;

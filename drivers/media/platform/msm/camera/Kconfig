@@ -178,3 +178,10 @@ config MCLK_I2C_DELAY
 	default n
 	---help---
 	Adds Delay in MCLK I2C Sequence for preventing Spec Out.
+	
+config MCLK_I2C_DELAY_FOR_CAM_POWERDOWN
+	tristate "Delay in MCLK I2C Sequence for preventing Spec Out during power off signal of cam"
+	depends on SPECTRA_CAMERA
+	default n
+	---help---
+	Adds Delay in MCLK I2C power down Sequence for preventing Spec Out.

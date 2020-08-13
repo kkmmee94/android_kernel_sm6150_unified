@@ -522,7 +522,7 @@ static int muic_init_gpio_cb(void *data, int switch_sel)
 int muic_afc_set_voltage(int voltage)
 {
 	struct muic_platform_data *pdata = &muic_pdata;
-    pr_info("%s \n", __func__);
+
 	if (pdata && pdata->muic_afc_set_voltage_cb)
 		return pdata->muic_afc_set_voltage_cb(voltage);
 
@@ -1432,9 +1432,6 @@ int muic_core_hv_state_manager(struct muic_platform_data *muic_pdata,
 			break;
 		case HV_TRANS_FAST_CHARGE_PING_RESPONSE:
 			next_state = HV_STATE_FAST_CHARGE_COMMUNICATION;
-			break;
-		case HV_TRANS_FAST_CHARGE_REOPEN:
-			next_state = HV_STATE_FAST_CHARGE_ADAPTOR;
 			break;
 		default:
 			skip_trans = true;

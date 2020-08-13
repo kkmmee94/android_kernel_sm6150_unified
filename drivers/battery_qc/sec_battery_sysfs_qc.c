@@ -11,7 +11,13 @@
  */
 #include "include/sec_battery_qc.h"
 #include "include/sec_battery_sysfs_qc.h"
+#if defined(CONFIG_QPNP_SMB5)
+#if defined(CONFIG_SEC_A90Q_PROJECT)
+#include "../power/supply/qcom_r1/smb5-lib.h"
+#else
 #include "../power/supply/qcom/smb5-lib.h"
+#endif
+#endif
 
 static struct device_attribute sec_battery_attrs[] = {
 	SEC_BATTERY_ATTR(batt_slate_mode),
@@ -47,10 +53,8 @@ static struct device_attribute sec_battery_attrs[] = {
 #if defined(CONFIG_ENG_BATTERY_CONCEPT)
 	SEC_BATTERY_ATTR(batt_temp_test),
 	SEC_BATTERY_ATTR(step_chg_test),
-#if 0
 	SEC_BATTERY_ATTR(pdp_limit_w_default),
 	SEC_BATTERY_ATTR(pdp_limit_w_final),
-#endif
 	SEC_BATTERY_ATTR(pdp_limit_w_interval),
 #endif
 	SEC_BATTERY_ATTR(batt_wdt_control),
@@ -123,7 +127,9 @@ ssize_t sec_bat_show_attrs(struct device *dev,
 	int rc = 0;
 	int i = 0;
 #if defined(CONFIG_ENG_BATTERY_CONCEPT)
-	//struct smb_charger *chg = power_supply_get_drvdata(battery->psy_bat);
+#if defined(CONFIG_SEC_A90Q_PROJECT)
+	struct smb_charger *chg = power_supply_get_drvdata(battery->psy_bat);
+#endif
 #endif
 
 	switch (offset) {
@@ -365,16 +371,18 @@ ssize_t sec_bat_show_attrs(struct device *dev,
 				battery->step_chg_test_value[6], battery->step_chg_test_value[7],
 				battery->step_chg_test_value[8]);
 		break;
-#if 0
 	case PDP_LIMIT_W_DEFAULT:
+#if defined(CONFIG_SEC_A90Q_PROJECT)
 		i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n",
 				chg->default_pdp_limit_w);
+#endif
 		break;
 	case PDP_LIMIT_W_FINAL:
+#if defined(CONFIG_SEC_A90Q_PROJECT)
 		i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n",
 				chg->final_pdp_limit_w);
-		break;
 #endif
+		break;
 	case PDP_LIMIT_W_INTERVAL:
 		i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n",
 				battery->interval_pdp_limit_w);
@@ -780,7 +788,9 @@ ssize_t sec_bat_store_attrs(
 	int i = 0;
 #endif
 #if defined(CONFIG_ENG_BATTERY_CONCEPT)
-	//struct smb_charger *chg = power_supply_get_drvdata(battery->psy_bat);
+#if defined(CONFIG_SEC_A90Q_PROJECT)
+	struct smb_charger *chg = power_supply_get_drvdata(battery->psy_bat);
+#endif
 #endif
 
 	switch (offset) {
@@ -946,20 +956,22 @@ ssize_t sec_bat_store_attrs(
 		ret = count;
 		break;
 	}
-#if 0
 	case PDP_LIMIT_W_DEFAULT:
+#if defined(CONFIG_SEC_A90Q_PROJECT)
 		if (sscanf(buf, "%d\n", &x) == 1) {
 			chg->default_pdp_limit_w = x;
 			ret = count;
 		}
+#endif
 		break;
 	case PDP_LIMIT_W_FINAL:
+#if defined(CONFIG_SEC_A90Q_PROJECT)
 		if (sscanf(buf, "%d\n", &x) == 1) {
 			chg->final_pdp_limit_w = x;
 			ret = count;
 		}
-		break;
 #endif
+		break;
 	case PDP_LIMIT_W_INTERVAL:
 		if (sscanf(buf, "%d\n", &x) == 1) {
 			battery->interval_pdp_limit_w = x;

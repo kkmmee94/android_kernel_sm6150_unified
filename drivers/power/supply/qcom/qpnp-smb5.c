@@ -798,6 +798,25 @@ static int smb5_parse_dt(struct smb5 *chip)
 	if(unlikely(rc))
 		return rc;
 #endif //CONFIG_PM6150_WATER_DETECT
+
+#if defined(CONFIG_PM6150_USB_FALSE_DETECTION_WA_BY_GND) && !defined(CONFIG_SEC_FACTORY)
+	{
+		int rid_gnd_gpio;
+		
+		rid_gnd_gpio = of_get_named_gpio(node, "rid-gnd-gpio", 0);
+		rc = gpio_request(rid_gnd_gpio, "rid-gnd-gpio");	
+		if(unlikely(rc))
+			return rc;
+		
+		//Store the cable status during booting for USB_WA.
+		chg->rid_gnd_gpio_sts = gpio_get_value(rid_gnd_gpio);
+		
+		//Free the gpio, as it will be requested & used again in rid driver (pm6150l_rid_adc)
+		gpio_free(rid_gnd_gpio);
+		
+		pr_info("[USB_WA] %s rid_gnd_gpio_status : %d \n", __func__, chg->rid_gnd_gpio_sts);
+	}
+#endif
 					
 	return 0;
 }
@@ -890,7 +909,6 @@ static int smb5_usb_get_prop(struct power_supply *psy,
 	int rc = 0;
 #if defined(CONFIG_BATTERY_SAMSUNG_USING_QC)
 	enum power_supply_ext_property ext_psp = (enum power_supply_ext_property)psp;
-	int curr = 0;
 #endif
 
 	val->intval = 0;
@@ -901,15 +919,17 @@ static int smb5_usb_get_prop(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_ONLINE:
 #if defined(CONFIG_BATTERY_SAMSUNG_USING_QC)
-		curr = get_effective_result(chg->usb_icl_votable);
-		pr_info("lp charge = %d,USB_ICL Vote = %d\n",lpcharge,curr);
-		if( lpcharge && !curr)
-		{
-			pr_info("Low Power Mode with 0 input current\n");
-			rc = smblib_get_prop_usb_present(chg, val);
-		}
-		else
-		{
+		if (lpcharge) {
+			int curr = 0;
+
+			curr = get_effective_result_locked(chg->usb_icl_votable);
+			if (!curr) {
+				pr_info("%s: Keep LPM charging with USB_ICL(%d)\n", __func__, curr);
+				rc = smblib_get_prop_usb_present(chg, val);
+			} else {
+				rc = smblib_get_prop_usb_online(chg, val);
+			}
+		} else {
 			rc = smblib_get_prop_usb_online(chg, val);
 		}
 		if (chg->ta_alert_mode) {
@@ -1337,9 +1357,6 @@ static int smb5_usb_port_get_prop(struct power_supply *psy,
 	struct smb5 *chip = power_supply_get_drvdata(psy);
 	struct smb_charger *chg = &chip->chg;
 	int rc = 0;
-#if defined(CONFIG_BATTERY_SAMSUNG_USING_QC)
-	int curr = 0;
-#endif
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_TYPE:
@@ -1347,17 +1364,19 @@ static int smb5_usb_port_get_prop(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_ONLINE:
 #if defined(CONFIG_BATTERY_SAMSUNG_USING_QC)
-        curr = get_effective_result(chg->usb_icl_votable);
-        pr_info("smb5_usb_port_get_prop:lp charge = %d,USB_ICL Vote = %d\n",lpcharge,curr);
-        if( lpcharge && !curr)
-        {
-            pr_info("Low Power Mode with 0 input current\n");
-            rc = smblib_get_prop_usb_present(chg, val);
-        }
-        else
-        {
-            rc = smblib_get_prop_usb_online(chg, val);
-        }
+		if (lpcharge) {
+			int curr = 0;
+
+			curr = get_effective_result_locked(chg->usb_icl_votable);
+			if (!curr) {
+				pr_info("%s: Keep LPM charging with USB_ICL(%d)\n", __func__, curr);
+				rc = smblib_get_prop_usb_present(chg, val);
+			} else {
+				rc = smblib_get_prop_usb_online(chg, val);
+			}
+		} else {
+			rc = smblib_get_prop_usb_online(chg, val);
+		}
 #else
         rc = smblib_get_prop_usb_online(chg, val);
 #endif
@@ -2730,14 +2749,22 @@ static int smb5_configure_typec(struct smb_charger *chg)
 		}
 
 		/* delay before enabling typeC */
-		msleep(50);
+		msleep(50);  // Keep this delay, if RID ADC driver loaded within 50 ms.
 
-		pval.intval = POWER_SUPPLY_TYPEC_PR_DUAL;
-		smblib_set_prop_typec_power_role(chg, &pval);
-		if (rc < 0) {
-			dev_err(chg->dev, "Couldn't enable TYPEC rc=%d\n", rc);
-			return rc;
+#if defined(CONFIG_PM6150_USB_FALSE_DETECTION_WA_BY_GND) && !defined(CONFIG_SEC_FACTORY)
+// Temp for USB connection disconnection repeated pop-up due to rust in cc line from market
+		if(chg->rid_gnd_gpio_sts) {
+			pr_info("[USB_WA] %s Disable by default\n", __func__);
+#endif		
+			pval.intval = POWER_SUPPLY_TYPEC_PR_DUAL;
+			smblib_set_prop_typec_power_role(chg, &pval);
+			if (rc < 0) {
+				dev_err(chg->dev, "Couldn't enable TYPEC rc=%d\n", rc);
+				return rc;
+			}
+#if defined(CONFIG_PM6150_USB_FALSE_DETECTION_WA_BY_GND) && !defined(CONFIG_SEC_FACTORY)
 		}
+#endif		
 	}
 
 	smblib_apsd_enable(chg, true);
@@ -3514,7 +3541,18 @@ static int smb5_post_init(struct smb5 *chip)
 	rerun_election(chg->usb_icl_votable);
 
 	/* configure power role for dual-role */
+#if defined(CONFIG_PM6150_USB_FALSE_DETECTION_WA_BY_GND) && !defined(CONFIG_SEC_FACTORY)
+	if(chg->rid_gnd_gpio_sts) {
+		pr_info("[USB_WA] %s Disable by default\n", __func__);
+		pval.intval = POWER_SUPPLY_TYPEC_PR_NONE;
+	}
+	else {
+		pr_info("[USB_WA] %s DRP enabled as booted with cable\n", __func__);
+		pval.intval = POWER_SUPPLY_TYPEC_PR_DUAL;
+	}
+#else
 	pval.intval = POWER_SUPPLY_TYPEC_PR_DUAL;
+#endif 
 	rc = smblib_set_prop_typec_power_role(chg, &pval);
 	if (rc < 0) {
 		dev_err(chg->dev, "Couldn't configure DRP role rc=%d\n",
@@ -4384,6 +4422,11 @@ static int smb5_probe(struct platform_device *pdev)
 
 #if defined(CONFIG_PM6150_WATER_DETECT)
 	smb5_lpd_hiccup_init(chg);
+#endif
+	
+#if defined(CONFIG_PM6150_USB_FALSE_DETECTION_WA_BY_GND) && !defined(CONFIG_SEC_FACTORY)
+	pr_info("[USB_WA] %s smb5_rid_pm6150l_init\n", __func__);
+	smb5_rid_pm6150l_init(chg);
 #endif
 
 	device_init_wakeup(chg->dev, true);

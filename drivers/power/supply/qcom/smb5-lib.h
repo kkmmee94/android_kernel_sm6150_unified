@@ -547,7 +547,9 @@ struct smb_charger {
 	int 				hiccup_gpio;
 	struct device		*hiccup_dev;
 #endif //CONFIG_PM6150_WATER_DETECT	
-
+#if defined(CONFIG_PM6150_USB_FALSE_DETECTION_WA_BY_GND) && !defined(CONFIG_SEC_FACTORY)
+	int 				rid_gnd_gpio_sts;
+#endif
 	/* secondary charger config */
 	bool			sec_pl_present;
 	bool			sec_cp_present;
@@ -947,5 +949,10 @@ int smblib_get_prop_input_current_register(struct smb_charger *chg,
 #if defined(CONFIG_AFC)
 int is_afc_result(struct smb_charger *chg,int result);
 #endif
+#endif
+#if defined(CONFIG_PM6150_USB_FALSE_DETECTION_WA_BY_GND) && !defined(CONFIG_SEC_FACTORY)
+void smb5_rid_pm6150l_init(struct smb_charger *chg);
+void smblib_drp_enable(struct smb_charger *chg);
+void smblib_drp_disable(struct smb_charger *chg);
 #endif
 #endif /* __SMB5_CHARGER_H */

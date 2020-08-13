@@ -526,12 +526,12 @@ int cam_ois_init(struct cam_ois_ctrl_t *o_ctrl)
 
  	rc = cam_ois_i2c_write(o_ctrl, 0x0262, 0x55,CAMERA_SENSOR_I2C_TYPE_WORD, CAMERA_SENSOR_I2C_TYPE_BYTE);
 	if (rc < 0) {
-     		CAM_ERR(CAM_OIS, "ois i2c write failed rc %d", rc);
+		CAM_ERR(CAM_OIS, "ois i2c write failed rc %d", rc);
 	} 
  	rc = cam_ois_i2c_write(o_ctrl, 0x0264, 0x6F12033B,
 		CAMERA_SENSOR_I2C_TYPE_WORD, CAMERA_SENSOR_I2C_TYPE_DWORD);
  	if (rc < 0) {
-      		CAM_ERR(CAM_OIS, "ois i2c write failed, rc %d", rc);
+		CAM_ERR(CAM_OIS, "ois i2c write failed, rc %d", rc);
 	}
 
 	// OIS Shift Setting
@@ -1146,7 +1146,7 @@ bool cam_ois_sine_wavecheck(struct cam_ois_ctrl_t *o_ctrl, int threshold,
 	int result_addr[1] = {0x00E4};
 	ret = cam_ois_i2c_write(o_ctrl, 0x0052, (uint16_t)threshold,CAMERA_SENSOR_I2C_TYPE_WORD, CAMERA_SENSOR_I2C_TYPE_BYTE); /* error threshold level. */
 	ret |= cam_ois_i2c_write(o_ctrl, 0x0053, 0x00,CAMERA_SENSOR_I2C_TYPE_WORD, CAMERA_SENSOR_I2C_TYPE_BYTE); /* count value for error judgement level. */
-	ret |= cam_ois_i2c_write(o_ctrl, 0x0054, 0x03,CAMERA_SENSOR_I2C_TYPE_WORD, CAMERA_SENSOR_I2C_TYPE_BYTE); /* frequency level for measurement. Modify from 5->3 for test*/
+	ret |= cam_ois_i2c_write(o_ctrl, 0x0054, 0x02,CAMERA_SENSOR_I2C_TYPE_WORD, CAMERA_SENSOR_I2C_TYPE_BYTE); /* frequency level for measurement. Modify from 5->3->2 for test*/
 	ret |= cam_ois_i2c_write(o_ctrl, 0x0055, 0x3A,CAMERA_SENSOR_I2C_TYPE_WORD, CAMERA_SENSOR_I2C_TYPE_BYTE); /* amplitude level for measurement. */
 	ret |= cam_ois_i2c_write(o_ctrl, 0x0057, 0x02,CAMERA_SENSOR_I2C_TYPE_WORD, CAMERA_SENSOR_I2C_TYPE_BYTE); /* vyvle level for measurement. */
 	ret |= cam_ois_i2c_write(o_ctrl, 0x0050, 0x01,CAMERA_SENSOR_I2C_TYPE_WORD, CAMERA_SENSOR_I2C_TYPE_BYTE); /* start sine wave check operation */
@@ -1157,7 +1157,7 @@ bool cam_ois_sine_wavecheck(struct cam_ois_ctrl_t *o_ctrl, int threshold,
 		return false;
 	}
 
-	retries = 30;
+	retries = 50;
 	do {
 		ret = cam_ois_i2c_byte_read(o_ctrl, 0x0050, &val);
 		if (ret < 0) {
