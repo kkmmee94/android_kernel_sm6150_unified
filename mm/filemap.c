@@ -2383,6 +2383,7 @@ static int lock_page_maybe_drop_mmap(struct vm_fault *vmf, struct page *page,
 	return 1;
 }
 
+int mmap_readaround_limit;
 
 /*
  * Synchronous readahead happens when we don't even find a page in the page
@@ -2435,6 +2436,8 @@ static struct file *do_sync_mmap_readahead(struct vm_fault *vmf)
 	else
 		ra_pages = ra->ra_pages;
 #endif
+    if (mmap_readaround_limit && ra->ra_pages > mmap_readaround_limit)
+        ra_pages = mmap_readaround_limit;
 	fpin = maybe_unlock_mmap_for_io(vmf, fpin);
 	ra->start = max_t(long, 0, offset - ra_pages / 2);
 	ra->size = ra_pages;
