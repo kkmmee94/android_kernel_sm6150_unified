@@ -1066,7 +1066,9 @@ static int dfc_all_bearer_flow_ctl(struct net_device *dev,
 
 static int dfc_update_fc_map(struct net_device *dev, struct qos_info *qos,
 			     u8 ack_req, u32 ancillary,
-			     struct dfc_flow_status_info_type_v01 *fc_info)
+			     struct dfc_flow_status_info_type_v01 *fc_info,
+			     bool is_query,
+			     int index)
 {
 	struct rmnet_bearer_map *itm = NULL;
 	int rc = 0;
@@ -1083,9 +1085,16 @@ static int dfc_update_fc_map(struct net_device *dev, struct qos_info *qos,
 			if (itm->rat_switch)
 				return 0;
 
-		/* If TX is OFF but we received grant, ignore it */
-		if (itm->tx_off  && fc_info->num_bytes > 0)
-			return 0;
+		/* If TX is OFF but we received grant from the same modem,
+		 * ignore it. If the grant is from a different modem,
+		 * assume TX had become ON.
+		 */
+		if (itm->tx_off && fc_info->num_bytes > 0) {
+			if (itm->tx_status_index == index)
+				return 0;
+			itm->tx_off = false;
+			itm->tx_status_index = index;
+		}
 
 		if ((itm->grant_size == 0 && fc_info->num_bytes > 0) ||
 		    (itm->grant_size > 0 && fc_info->num_bytes == 0))
@@ -1166,7 +1175,8 @@ static void dfc_do_burst_flow_control(struct dfc_qmi_data *dfc,
 				dev, qos, ack_req, ancillary, flow_status);
 		else
 			dfc_update_fc_map(
-				dev, qos, ack_req, ancillary, flow_status);
+				dev, qos, ack_req, ancillary, flow_status,
+				is_query, dfc->index);
 
 		spin_unlock_bh(&qos->qos_lock);
 	}
@@ -1177,12 +1187,19 @@ clean_out:
 
 static void dfc_update_tx_link_status(struct net_device *dev,
 				      struct qos_info *qos, u8 tx_status,
-				      struct dfc_bearer_info_type_v01 *binfo)
+				      struct dfc_bearer_info_type_v01 *binfo,
+				      int index)
 {
 	struct rmnet_bearer_map *itm = NULL;
 
 	itm = qmi_rmnet_get_bearer_map(qos, binfo->bearer_id);
 	if (!itm)
+		return;
+
+	itm->tx_status_index = index;
+
+	/* If no change in tx status, ignore */
+	if (itm->tx_off == !tx_status)
 		return;
 
 	if (itm->grant_size && !tx_status) {
@@ -1231,7 +1248,7 @@ static void dfc_handle_tx_link_status_ind(struct dfc_qmi_data *dfc,
 		spin_lock_bh(&qos->qos_lock);
 
 		dfc_update_tx_link_status(
-			dev, qos, ind->tx_status, bearer_info);
+			dev, qos, ind->tx_status, bearer_info, dfc->index);
 
 		spin_unlock_bh(&qos->qos_lock);
 	}

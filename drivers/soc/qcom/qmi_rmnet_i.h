@@ -43,6 +43,15 @@ struct rmnet_bearer_map {
 	bool tcp_bidir;
 	bool rat_switch;
 	bool tx_off;
+	int tx_status_index;
+	u32 ack_txid;
+	u32 mq_idx;
+	u32 ack_mq_idx;
+	struct qos_info *qos;
+	struct timer_list watchdog;
+	bool watchdog_started;
+	bool watchdog_quit;
+	u32 watchdog_expire_cnt;
 };
 
 struct rmnet_flow_map {
