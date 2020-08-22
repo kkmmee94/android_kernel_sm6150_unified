@@ -2,15 +2,15 @@
 
 set -e
 
-export CROSS_COMPILE=/home/firemax13/a71_kernel/firemax13/toolchain/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+export CROSS_COMPILE=/home/firemax13/r1qkernel/toolchain/aarch64-linux-android-4.9/bin/aarch64-linux-android-
 export ARCH=arm64
 
 if [ ! -d out ]; then
 	mkdir out
 fi
 
-BUILD_CROSS_COMPILE=/home/firemax13/a71_kernel/firemax13/toolchain/aarch64-linux-android-4.9/bin/aarch64-linux-android-
-KERNEL_LLVM_BIN=/home/firemax13/a71_kernel/firemax13/toolchain/clang/bin/clang
+BUILD_CROSS_COMPILE=/home/firemax13/r1qkernel/toolchain/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+KERNEL_LLVM_BIN=/home/firemax13/r1qkernel/toolchain/clang/bin/clang
 CLANG_TRIPLE=aarch64-linux-gnu-
 KERNEL_MAKE_ENV="CONFIG_BUILD_ARM64_DT_OVERLAY=y"
 
