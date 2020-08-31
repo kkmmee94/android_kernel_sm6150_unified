@@ -1,0 +1,15 @@
+*.tar
+*.xz
+*.lzma
+*.lz4
+*.a
+*.bin
+
+toolchain/aarch64-linux-android-4.9
+toolchain/!gcc!.sh
+toolchain/clang/*.xz
+toolchain/clang/!clang!.sh
+toolchain/clang/*.txt
+toolchain/clang
+
+out/
