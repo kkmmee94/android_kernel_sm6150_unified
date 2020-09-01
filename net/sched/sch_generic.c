@@ -315,7 +315,7 @@ static void dev_watchdog(unsigned long arg)
 				}
 			}
 
-			if (some_queue_timedout) {
+			if (some_queue_timedout)
 				dev->netdev_ops->ndo_tx_timeout(dev);
 			if (!mod_timer(&dev->watchdog_timer,
 				       round_jiffies(jiffies +

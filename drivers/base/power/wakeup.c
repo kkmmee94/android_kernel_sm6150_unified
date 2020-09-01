@@ -22,10 +22,6 @@
 #include <linux/irqdesc.h>
 
 #include "power.h"
-#ifdef CONFIG_SEC_PM
-#include <linux/wakeup_reason.h>
-#include <linux/pm_wakeup.h>
-
 
 #ifdef CONFIG_BOEFFLA_WL_BLOCKER
 #include "boeffla_wl_blocker.h"
