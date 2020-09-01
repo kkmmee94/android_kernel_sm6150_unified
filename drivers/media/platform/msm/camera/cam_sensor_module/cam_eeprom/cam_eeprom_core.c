@@ -1,4 +1,4 @@
-/* Copyright (c) 2017-2018, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -2436,41 +2436,15 @@ static int cam_eeprom_read_memory(struct cam_eeprom_ctrl_t *e_ctrl,
 		}
 
 		if (emap[j].mem.valid_size) {
-			size = emap[j].mem.valid_size;
-			addr = emap[j].mem.addr;
-			memptr = block->mapdata + addr;
-
-			CAM_DBG(CAM_EEPROM, "[%d / %d] memptr = %pK, addr = 0x%X, size = 0x%X, subdev = %d",
-				j, block->num_map, memptr, emap[j].mem.addr, emap[j].mem.valid_size, e_ctrl->soc_info.index);
-
-			CAM_DBG(CAM_EEPROM, "addr_type = %d, data_type = %d, device_type = %d",
-				emap[j].mem.addr_type, emap[j].mem.data_type, e_ctrl->eeprom_device_type);
-			if ((e_ctrl->eeprom_device_type == MSM_CAMERA_SPI_DEVICE
-				|| e_ctrl->eeprom_device_type == MSM_CAMERA_I2C_DEVICE)
-				&& emap[j].mem.data_type == 0) {
-				CAM_DBG(CAM_EEPROM,
-					"skipping read as data_type 0, skipped:%d",
-					read_size);
-				continue;
-			}
-
-			while(size > 0) {
-				read_size = size;
-				if (size > I2C_REG_DATA_MAX) {
-					read_size = I2C_REG_DATA_MAX;
-				}
-				rc = camera_io_dev_read_seq(&e_ctrl->io_master_info,
-					addr, memptr,
-					emap[j].mem.addr_type,
-					emap[j].mem.data_type,
-					read_size);
-				if (rc < 0) {
-					CAM_ERR(CAM_EEPROM, "read failed rc %d", rc);
-					return rc;
-				}
-				size -= read_size;
-				addr += read_size;
-				memptr += read_size;
+			rc = camera_io_dev_read_seq(&e_ctrl->io_master_info,
+				emap[j].mem.addr, memptr,
+				emap[j].mem.addr_type,
+				emap[j].mem.data_type,
+				emap[j].mem.valid_size);
+			if (rc < 0) {
+				CAM_ERR(CAM_EEPROM, "read failed rc %d",
+					rc);
+				return rc;
 			}
 		}
 

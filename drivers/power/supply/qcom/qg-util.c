@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2019 The Linux Foundation. All rights reserved.
+/* Copyright (c) 2018-2020 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -479,31 +479,20 @@ int qg_get_vbat_avg(struct qpnp_qg *chip, int *vbat_uv)
 	return 0;
 }
 
-#if defined(CONFIG_BATTERY_SAMSUNG_USING_QC)
-int get_val(struct range_data *range, int threshold, int *val)
+int qg_get_ibat_avg(struct qpnp_qg *chip, int *ibat_ua)
 {
-	int i;
+	int rc = 0;
+	int last_ibat = 0;
 
-	/*
-	 * If the threshold is lesser than the minimum allowed range,
-	 * return -ENODATA.
-	 */
-	if (threshold < range[0].low_threshold)
-		return -ENODATA;
-
-	/* First try to find the matching index without hysteresis */
-	for (i = 0; i < MAX_VFLOAT_ENTRIES; i++) {
-		if (!range[i].high_threshold && !range[i].low_threshold) {
-			/* First invalid table entry; exit loop */
-			break;
-		}
-
-		if (is_between(range[i].low_threshold,
-			range[i].high_threshold, threshold)) {
-			*val = range[i].value;
-			break;
-		}
+	rc = qg_read(chip, chip->qg_base + QG_S2_NORMAL_AVG_I_DATA0_REG,
+				(u8 *)&last_ibat, 2);
+	if (rc < 0) {
+		pr_err("Failed to read S2_NORMAL_AVG_I reg, rc=%d\n", rc);
+		return rc;
 	}
+
+	last_ibat = sign_extend32(last_ibat, 15);
+	*ibat_ua = qg_iraw_to_ua(chip, last_ibat);
+
 	return 0;
 }
-#endif

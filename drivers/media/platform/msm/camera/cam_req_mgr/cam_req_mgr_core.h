@@ -1,4 +1,4 @@
-/* Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -32,6 +32,10 @@
 
 #define MAX_SYNC_COUNT 65535
 
+/* Default frame rate is 30 */
+#define DEFAULT_FRAME_DURATION 33333333
+#define TIMESTAMP_DIFF_THRESHOLD 10000000
+
 #define SYNC_LINK_SOF_CNT_MAX_LMT 1
 
 #define MAXIMUM_LINKS_PER_SESSION  4
@@ -50,6 +54,7 @@ enum crm_workq_task_type {
 	CRM_WORKQ_TASK_NOTIFY_FREEZE,
 	CRM_WORKQ_TASK_SCHED_REQ,
 	CRM_WORKQ_TASK_FLUSH_REQ,
+	CRM_WORKQ_TASK_DUMP_REQ,
 	CRM_WORKQ_TASK_INVALID,
 };
 
@@ -277,6 +282,19 @@ struct cam_req_mgr_connected_device {
 	void                           *parent;
 };
 
+/* *
+ * struct cam_req_mgr_ife_sof_evt
+ * - Track SOF Events from IFE
+ * @ dev_hdl  : device handle
+ * @ sof_done : tracks sof for individual IFE
+ */
+struct cam_req_mgr_dev_sof_evt {
+	uint64_t timestamp;
+	int32_t  dev_hdl;
+	int32_t  frame_id;
+	bool     sof_done;
+};
+
 /**
  * struct cam_req_mgr_core_link
  * -  Link Properties
@@ -338,6 +356,8 @@ struct cam_req_mgr_core_link {
 	bool                                 sync_link_sof_skip;
 	int32_t                              open_req_cnt;
 	uint32_t                             last_flush_id;
+	int32_t                              num_sof_src;
+	struct cam_req_mgr_dev_sof_evt       dev_sof_evt[3];
 	atomic_t                             is_used;
 	bool                                 is_master;
 	bool                                 initial_skip;
@@ -468,6 +488,13 @@ void cam_req_mgr_handle_core_shutdown(void);
  * @control: Link control command
  */
 int cam_req_mgr_link_control(struct cam_req_mgr_link_control *control);
+
+/**
+ * cam_req_mgr_dump_request()
+ * @brief:   Dumps the request information
+ * @dump_req: Dump request
+ */
+int cam_req_mgr_dump_request(struct cam_dump_req_cmd *dump_req);
 
 #endif
 

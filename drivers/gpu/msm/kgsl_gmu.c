@@ -1,4 +1,4 @@
-/* Copyright (c) 2017-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -299,6 +299,7 @@ static int gmu_iommu_cb_probe(struct gmu_device *gmu,
 		dev_err(&gmu->pdev->dev, "gmu iommu fail to attach %s device\n",
 			ctx->name);
 		iommu_domain_free(ctx->domain);
+		ctx->domain = NULL;
 	}
 
 	return ret;
@@ -375,6 +376,9 @@ static void gmu_kmem_close(struct gmu_device *gmu)
 	gmu->dump_mem = NULL;
 	gmu->gmu_log = NULL;
 
+	if (!ctx->domain)
+		return;
+
 	/* Unmap and free all memories in GMU kernel memory pool */
 	for (i = 0; i < GMU_KERNEL_ENTRIES; i++) {
 		if (!test_bit(i, &gmu_kmem_bitmap))
@@ -396,14 +400,23 @@ static void gmu_kmem_close(struct gmu_device *gmu)
 
 	/* free kernel mem context */
 	iommu_domain_free(ctx->domain);
+	ctx->domain = NULL;
 }
 
 static void gmu_memory_close(struct gmu_device *gmu)
 {
-	gmu_kmem_close(gmu);
-	/* Free user memory context */
-	iommu_domain_free(gmu_ctx[GMU_CONTEXT_USER].domain);
+	struct gmu_iommu_context *ctx = &gmu_ctx[GMU_CONTEXT_USER];
 
+	gmu_kmem_close(gmu);
+
+	if (ctx->domain) {
+		/* Detach the device from SMMU context bank */
+		iommu_detach_device(ctx->domain, ctx->dev);
+
+		/* Free user memory context */
+		iommu_domain_free(ctx->domain);
+		ctx->domain = NULL;
+	}
 }
 
 /*
@@ -1448,9 +1461,8 @@ static int gmu_probe(struct kgsl_device *device, struct device_node *node)
 				"ACD probe failed: missing or invalid table\n");
 	}
 
-	/* disable LM if the feature is not enabled */
-	if (!ADRENO_FEATURE(adreno_dev, ADRENO_LM))
-		clear_bit(ADRENO_LM_CTRL, &adreno_dev->pwrctrl_flag);
+	if (ADRENO_FEATURE(adreno_dev, ADRENO_LM))
+		set_bit(ADRENO_LM_CTRL, &adreno_dev->pwrctrl_flag);
 
 	set_bit(GMU_ENABLED, &device->gmu_core.flags);
 	device->gmu_core.dev_ops = &adreno_a6xx_gmudev;

@@ -1186,6 +1186,7 @@ struct dwc3 {
 
 	unsigned int		index;
 	void			*dwc_ipc_log_ctxt;
+	void			*dwc_dma_ipc_log_ctxt;
 	struct dwc3_gadget_events	dbg_gadget_events;
 #if IS_ENABLED(CONFIG_USB_CHARGING_EVENT)
 	struct work_struct      set_vbus_current_work;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2017-2019 The Linux Foundation. All rights reserved.
+/* Copyright (c) 2015, 2017-2020 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -20,6 +20,7 @@
 #include <linux/ipa_mhi.h>
 #include "../ipa_common_i.h"
 #include "../ipa_v3/ipa_pm.h"
+#include "../ipa_v3/ipa_i.h"
 
 #define IPA_MHI_DRV_NAME "ipa_mhi_client"
 
@@ -63,12 +64,21 @@
 #define IPA_MHI_SUSPEND_SLEEP_MIN 900
 #define IPA_MHI_SUSPEND_SLEEP_MAX 1100
 
-#define IPA_MHI_MAX_UL_CHANNELS 1
-#define IPA_MHI_MAX_DL_CHANNELS 2
+#define IPA_MHI_MAX_UL_CHANNELS 2
+#define IPA_MHI_MAX_DL_CHANNELS 4
 
 /* bit #40 in address should be asserted for MHI transfers over pcie */
 #define IPA_MHI_CLIENT_HOST_ADDR_COND(addr) \
 	((ipa_mhi_client_ctx->assert_bit40)?(IPA_MHI_HOST_ADDR(addr)):(addr))
+
+#define IPA_MHI_CLIENT_IP_HW_0_OUT 100
+#define IPA_MHI_CLIENT_IP_HW_0_IN 101
+#define IPA_MHI_CLIENT_ADPL_IN 102
+#define IPA_MHI_CLIENT_IP_HW_QDSS 103
+#define IPA_MHI_CLIENT_IP_HW_1_OUT 105
+#define IPA_MHI_CLIENT_IP_HW_1_IN 106
+#define IPA_MHI_CLIENT_QMAP_FLOW_CTRL_OUT 109
+#define IPA_MHI_CLIENT_QMAP_FLOW_CTRL_IN 110
 
 enum ipa_mhi_rm_state {
 	IPA_MHI_RM_STATE_RELEASED,
@@ -1474,7 +1484,8 @@ static int ipa_mhi_reset_dl_channel(struct ipa_mhi_channel_ctx *channel)
 	return 0;
 }
 
-static int ipa_mhi_reset_channel(struct ipa_mhi_channel_ctx *channel)
+static int ipa_mhi_reset_channel(struct ipa_mhi_channel_ctx *channel,
+				 bool update_state)
 {
 	int res;
 
@@ -1490,7 +1501,8 @@ static int ipa_mhi_reset_channel(struct ipa_mhi_channel_ctx *channel)
 
 	channel->state = IPA_HW_MHI_CHANNEL_STATE_DISABLE;
 
-	if (ipa_get_transport_type() == IPA_TRANSPORT_TYPE_GSI) {
+	if ((ipa_get_transport_type() == IPA_TRANSPORT_TYPE_GSI) &&
+		update_state) {
 		res = ipa_mhi_read_write_host(IPA_MHI_DMA_TO_HOST,
 			&channel->state, channel->channel_context_addr +
 				offsetof(struct ipa_mhi_ch_ctx, chstate),
@@ -1503,6 +1515,53 @@ static int ipa_mhi_reset_channel(struct ipa_mhi_channel_ctx *channel)
 
 	IPA_MHI_FUNC_EXIT();
 	return 0;
+}
+
+static enum ipa_client_type ipa3_mhi_get_client_by_chid(u32 chid)
+{
+	enum ipa_client_type client;
+
+	switch (chid) {
+	case IPA_MHI_CLIENT_ADPL_IN:
+		client = IPA_CLIENT_MHI_DPL_CONS;
+		break;
+	case IPA_MHI_CLIENT_IP_HW_QDSS:
+		client = IPA_CLIENT_MHI_QDSS_CONS;
+		break;
+	case IPA_MHI_CLIENT_IP_HW_0_OUT:
+		client = IPA_CLIENT_MHI_PROD;
+		break;
+	case IPA_MHI_CLIENT_IP_HW_0_IN:
+		client = IPA_CLIENT_MHI_CONS;
+		break;
+	case IPA_MHI_CLIENT_IP_HW_1_OUT:
+	/* IPA4.5 non-auto, use mhi ch104 for qmap flow control */
+		if (ipa3_ctx->ipa_hw_type == IPA_HW_v4_5)
+			client = IPA_CLIENT_MHI_LOW_LAT_PROD;
+		/* No auto use case in this branch */
+		else
+			client = IPA_CLIENT_MAX;
+		break;
+	case IPA_MHI_CLIENT_IP_HW_1_IN:
+	/* IPA4.5 non-auto, use mhi ch105 for qmap flow control */
+		if (ipa3_ctx->ipa_hw_type == IPA_HW_v4_5)
+			client = IPA_CLIENT_MHI_LOW_LAT_CONS;
+		/* No auto use case in this branch */
+		else
+			client = IPA_CLIENT_MAX;
+		break;
+	case IPA_MHI_CLIENT_QMAP_FLOW_CTRL_OUT:
+		client = IPA_CLIENT_MHI_LOW_LAT_PROD;
+		break;
+	case IPA_MHI_CLIENT_QMAP_FLOW_CTRL_IN:
+		client = IPA_CLIENT_MHI_LOW_LAT_CONS;
+		break;
+	default:
+		IPA_MHI_ERR("Invalid channel = 0x%X\n", chid);
+		client = IPA_CLIENT_MAX;
+	}
+
+	return client;
 }
 
 /**
@@ -1530,6 +1589,9 @@ int ipa_mhi_connect_pipe(struct ipa_mhi_connect_params *in, u32 *clnt_hdl)
 		return -EINVAL;
 	}
 
+	IPA_MHI_DBG("channel=%d\n", in->channel_id);
+	in->sys.client = ipa3_mhi_get_client_by_chid(in->channel_id);
+
 	if (in->sys.client >= IPA_CLIENT_MAX) {
 		IPA_MHI_ERR("bad param client:%d\n", in->sys.client);
 		return -EINVAL;
@@ -1540,8 +1602,6 @@ int ipa_mhi_connect_pipe(struct ipa_mhi_connect_params *in, u32 *clnt_hdl)
 			"Invalid MHI client, client: %d\n", in->sys.client);
 		return -EINVAL;
 	}
-
-	IPA_MHI_DBG("channel=%d\n", in->channel_id);
 
 	spin_lock_irqsave(&ipa_mhi_client_ctx->state_lock, flags);
 	if (!ipa_mhi_client_ctx ||
@@ -1654,7 +1714,7 @@ int ipa_mhi_connect_pipe(struct ipa_mhi_connect_params *in, u32 *clnt_hdl)
 	return 0;
 fail_connect_pipe:
 	mutex_unlock(&mhi_client_general_mutex);
-	ipa_mhi_reset_channel(channel);
+	ipa_mhi_reset_channel(channel, true);
 fail_start_channel:
 	IPA_ACTIVE_CLIENTS_DEC_EP(in->sys.client);
 	return -EPERM;
@@ -1702,7 +1762,7 @@ int ipa_mhi_disconnect_pipe(u32 clnt_hdl)
 
 	IPA_ACTIVE_CLIENTS_INC_EP(ipa_get_client_mapping(clnt_hdl));
 
-	res = ipa_mhi_reset_channel(channel);
+	res = ipa_mhi_reset_channel(channel, false);
 	if (res) {
 		IPA_MHI_ERR("ipa_mhi_reset_channel failed %d\n", res);
 		goto fail_reset_channel;
