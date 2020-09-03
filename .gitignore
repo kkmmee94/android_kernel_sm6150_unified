@@ -11,6 +11,7 @@
 .wireguard-fetch-lock
 wireguard/
 
+toolchain/
 toolchain/clang/MODULE_LICENSE_BSD_LIKE
 toolchain/clang/MODULE_LICENSE_MIT
 toolchain/clang/NOTICE
