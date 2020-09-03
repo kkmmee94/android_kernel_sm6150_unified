@@ -892,18 +892,7 @@ int sps_bam_pipe_connect(struct sps_pipe *bam_pipe,
 				 BAM_ID(dev), pipe_index, (void *)iova);
 			hw_params.peer_phys_addr = (u32)iova;
 		} else {
-			if (!(bam_pipe->connect.options & SPS_O_DUMMY_PEER))
-				hw_params.peer_phys_addr =
-					peer_bam->props.phys_addr;
-		}
-		if (!(bam_pipe->connect.options & SPS_O_DUMMY_PEER)) {
-			hw_params.peer_pipe = other_pipe->pipe_index;
-		} else {
-			hw_params.peer_phys_addr =
-					bam_pipe->connect.destination;
-			hw_params.peer_pipe =
-					bam_pipe->connect.dest_pipe_index;
-			hw_params.dummy_peer = true;
+			hw_params.peer_phys_addr = peer_bam->props.phys_addr;
 		}
 
 		hw_params.peer_pipe = other_pipe->pipe_index;
