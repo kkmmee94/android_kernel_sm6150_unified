@@ -2,15 +2,19 @@
 
 set -e
 
-export CROSS_COMPILE=/home/firemax13/r1qkernel/toolchain/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+# Put the Kernel Path in here and fire it up
+# No need to change the whole and entire file to set-up kernel path
+KERNEL_PATH=/home/firemax13/r1qkernel
+
+export CROSS_COMPILE=$KERNEL_PATH/toolchain/aarch64-linux/bin/aarch64-linux-android-
 export ARCH=arm64
 
 if [ ! -d out ]; then
 	mkdir out
 fi
 
-BUILD_CROSS_COMPILE=/home/firemax13/r1qkernel/toolchain/aarch64-linux-android-4.9/bin/aarch64-linux-android-
-KERNEL_LLVM_BIN=/home/firemax13/r1qkernel/toolchain/clang/bin/clang
+BUILD_CROSS_COMPILE=$KERNEL_PATH/toolchain/aarch64-linux/bin/aarch64-linux-android-
+KERNEL_LLVM_BIN=$KERNEL_PATH/toolchain/clang/bin/clang
 CLANG_TRIPLE=aarch64-linux-gnu-
 KERNEL_MAKE_ENV="CONFIG_BUILD_ARM64_DT_OVERLAY=y"
 
