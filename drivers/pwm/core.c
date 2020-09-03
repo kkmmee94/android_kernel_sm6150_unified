@@ -541,7 +541,7 @@ int pwm_apply_state(struct pwm_device *pwm, struct pwm_state *state)
 						state->period);
 			} else {
 				if (state->period > UINT_MAX)
-					pr_warn("period %llu duty_cycle %llu will be truncated\n",
+					pr_debug("period %llu duty_cycle %llu will be truncated\n",
 							state->period,
 							state->duty_cycle);
 				err = pwm->chip->ops->config(pwm->chip, pwm,
@@ -708,14 +708,14 @@ struct pwm_device *of_pwm_get(struct device_node *np, const char *con_id)
 	err = of_parse_phandle_with_args(np, "pwms", "#pwm-cells", index,
 					 &args);
 	if (err) {
-		pr_err("%s(): can't parse \"pwms\" property\n", __func__);
+		pr_debug("%s(): can't parse \"pwms\" property\n", __func__);
 		return ERR_PTR(err);
 	}
 
 	pc = of_node_to_pwmchip(args.np);
 	if (IS_ERR(pc)) {
 		if (PTR_ERR(pc) != -EPROBE_DEFER)
-			pr_err("%s(): PWM chip not found\n", __func__);
+			pr_debug("%s(): PWM chip not found\n", __func__);
 
 		pwm = ERR_CAST(pc);
 		goto put;
@@ -903,7 +903,7 @@ void pwm_put(struct pwm_device *pwm)
 	mutex_lock(&pwm_lock);
 
 	if (!test_and_clear_bit(PWMF_REQUESTED, &pwm->flags)) {
-		pr_warn("PWM device already freed\n");
+		pr_debug("PWM device already freed\n");
 		goto out;
 	}
 
