@@ -22,7 +22,6 @@
 #include <linux/irqdesc.h>
 
 #include "power.h"
-#ifdef CONFIG_SEC_PM
 #include <linux/wakeup_reason.h>
 #include <linux/pm_wakeup.h>
 
@@ -741,7 +740,7 @@ static void wakeup_source_deactivate(struct wakeup_source *ws)
 		ws->max_time = duration;
 #ifdef CONFIG_SEC_PM_DEBUG
 	if (ktime_to_ms(duration) >= 10000LL) {
-		pr_info("PM: unlock %s(%lld ms)\n",
+		pr_debug("PM: unlock %s(%lld ms)\n",
 			ws->name, ktime_to_ms(duration));
 	}
 #endif
@@ -937,7 +936,7 @@ void pm_print_active_wakeup_sources(void)
 	srcuidx = srcu_read_lock(&wakeup_srcu);
 	list_for_each_entry_rcu(ws, &wakeup_sources, entry) {
 		if (ws->active) {
-			pr_info("active wakeup source: %s\n", ws->name);
+			pr_debug("active wakeup source: %s\n", ws->name);
 #ifdef CONFIG_BOEFFLA_WL_BLOCKER
 			if (!check_for_block(ws))	// AP: check if wakelock is on wakelock blocker list
 #endif
@@ -951,7 +950,7 @@ void pm_print_active_wakeup_sources(void)
 	}
 
 	if (!active && last_activity_ws)
-		pr_info("last active wakeup source: %s\n",
+		pr_debug("last active wakeup source: %s\n",
 			last_activity_ws->name);
 	srcu_read_unlock(&wakeup_srcu, srcuidx);
 }
@@ -981,7 +980,7 @@ bool pm_wakeup_pending(void)
 	spin_unlock_irqrestore(&events_lock, flags);
 
 	if (ret) {
-		pr_info("PM: Wakeup pending, aborting suspend\n");
+		pr_debug("PM: Wakeup pending, aborting suspend\n");
 		pm_print_active_wakeup_sources();
 	}
 
@@ -1020,12 +1019,9 @@ void pm_system_irq_wakeup(unsigned int irq_number)
 			else if (desc->action && desc->action->name)
 				name = desc->action->name;
 
-#ifdef CONFIG_SEC_PM
 			log_wakeup_reason(irq_number);
-#else
-			pr_warn("%s: %d triggered %s\n", __func__,
+			pr_debug("%s: %d triggered %s\n", __func__,
 					irq_number, name);
-#endif
 		}
 		pm_wakeup_irq = irq_number;
 		pm_system_wakeup();
@@ -1202,7 +1198,7 @@ static int print_wakeup_source_active(
 		active_time = ktime_set(0, 0);
 	}
 
-	ret = pr_info("<%s>\tCount(%lu) Time(%lld/%lld) Prevent(%lld)\n",
+	ret = pr_debug("<%s>\tCount(%lu) Time(%lld/%lld) Prevent(%lld)\n",
 			ws->name, active_count,
 			ktime_to_ms(active_time), ktime_to_ms(total_time),
 			ktime_to_ms(prevent_sleep_time));
@@ -1216,7 +1212,7 @@ int wakeup_sources_stats_active(void)
 {
 	struct wakeup_source *ws;
 
-	pr_info("Active wake lock:\n");
+	pr_debug("Active wake lock:\n");
 
 	rcu_read_lock();
 	list_for_each_entry_rcu(ws, &wakeup_sources, entry)
