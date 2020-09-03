@@ -631,7 +631,7 @@ static int avc_latest_notif_update(int seqno, int is_insert)
 	spin_lock_irqsave(&notif_lock, flag);
 	if (is_insert) {
 		if (seqno < avc_cache.latest_notif) {
-			printk(KERN_WARNING "SELinux: avc:  seqno %d < latest_notif %d\n",
+			pr_debug(KERN_WARNING "SELinux: avc:  seqno %d < latest_notif %d\n",
 			       seqno, avc_cache.latest_notif);
 			ret = -EAGAIN;
 		}
@@ -1021,20 +1021,20 @@ static noinline int avc_denied(u32 ssid, u32 tsid,
 		rc2 = security_sid_to_context(tsid, &tcontext, &tcontext_len);
 
 		if (rc1 || rc2) {
-			pr_err("SELinux DEBUG : %s: ssid=%d tsid=%d tclass=%s perm=%s requested(%d) auditallow(%d)\n",
+			pr_debug("SELinux DEBUG : %s: ssid=%d tsid=%d tclass=%s perm=%s requested(%d) auditallow(%d)\n",
 		       __func__, ssid, tsid, secclass_map[tclass-1].name, perms[i], requested, avd->auditallow);
 		} else {
-			pr_err("SELinux DEBUG : %s: scontext=%s tcontext=%s tclass=%s perm=%s requested(%d) auditallow(%d)\n",
+			pr_debug("SELinux DEBUG : %s: scontext=%s tcontext=%s tclass=%s perm=%s requested(%d) auditallow(%d)\n",
 		       __func__, scontext, tcontext, secclass_map[tclass-1].name, perms[i], requested, avd->auditallow);
 		}
 
 		/* print call stack */
-		pr_err("SELinux DEBUG : FATAL denial and start dump_stack\n");
+		pr_debug("SELinux DEBUG : FATAL denial and start dump_stack\n");
 		dump_stack();
 
 		/* enforcing : SIGABRT and take debuggerd log */
 		if (selinux_enforcing && !(avd->flags & AVD_FLAGS_PERMISSIVE)) {
-			pr_err("SELinux DEBUG : send SIGABRT to current tsk\n");
+			pr_debug("SELinux DEBUG : send SIGABRT to current tsk\n");
 			send_sig(SIGABRT, current, 2);
 		}
 
