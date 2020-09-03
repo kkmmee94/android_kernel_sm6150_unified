@@ -107,7 +107,7 @@ static int argos_find_index(const char *label)
 	int dev_num = -1;
 
 	if (!argos_pdata) {
-		pr_err("argos not initialized\n");
+		pr_debug("argos not initialized\n");
 		return -1;
 	}
 
@@ -125,18 +125,18 @@ int sec_argos_register_notifier(struct notifier_block *n, char *label)
 	dev_num = argos_find_index(label);
 
 	if (dev_num < 0) {
-		pr_err("No match found for label: %d", dev_num);
+		pr_debug("No match found for label: %d", dev_num);
 		return -ENODEV;
 	}
 
 	cnotifier = &argos_pdata->devices[dev_num].argos_notifier;
 
 	if (!cnotifier) {
-		pr_err("argos notifier not found(dev_num:%d)\n", dev_num);
+		pr_debug("argos notifier not found(dev_num:%d)\n", dev_num);
 		return -ENXIO;
 	}
 
-	pr_info("%pf(dev_num:%d)\n", n->notifier_call, dev_num);
+	pr_debug("%pf(dev_num:%d)\n", n->notifier_call, dev_num);
 
 	return blocking_notifier_chain_register(cnotifier, n);
 }
@@ -150,18 +150,18 @@ int sec_argos_unregister_notifier(struct notifier_block *n, char *label)
 	dev_num = argos_find_index(label);
 
 	if (dev_num < 0) {
-		pr_err("No match found for label: %d", dev_num);
+		pr_debug("No match found for label: %d", dev_num);
 		return -ENODEV;
 	}
 
 	cnotifier = &argos_pdata->devices[dev_num].argos_notifier;
 
 	if (!cnotifier) {
-		pr_err("argos notifier not found(dev_num:%d)\n", dev_num);
+		pr_debug("argos notifier not found(dev_num:%d)\n", dev_num);
 		return -ENXIO;
 	}
 
-	pr_info("%pf(dev_num:%d)\n", n->notifier_call, dev_num);
+	pr_debug("%pf(dev_num:%d)\n", n->notifier_call, dev_num);
 
 	return blocking_notifier_chain_unregister(cnotifier, n);
 }
@@ -175,12 +175,12 @@ static int argos_task_affinity_setup(struct task_struct *p, int dev_num,
 	struct list_head *head;
 
 	if (!argos_pdata) {
-		pr_err("argos not initialized\n");
+		pr_debug("argos not initialized\n");
 		return -ENXIO;
 	}
 
 	if (dev_num < 0 || dev_num >= argos_pdata->ndevice) {
-		pr_err("dev_num:%d should be dev_num:0 ~ %d in boundary\n",
+		pr_debug("dev_num:%d should be dev_num:0 ~ %d in boundary\n",
 		       dev_num, argos_pdata->ndevice - 1);
 		return -EINVAL;
 	}
@@ -222,12 +222,12 @@ static int argos_irq_affinity_setup(unsigned int irq, int dev_num,
 	struct list_head *head;
 
 	if (!argos_pdata) {
-		pr_err("argos not initialized\n");
+		pr_debug("argos not initialized\n");
 		return -ENXIO;
 	}
 
 	if (dev_num < 0 || dev_num >= argos_pdata->ndevice) {
-		pr_err("dev_num:%d should be dev_num:0 ~ %d in boundary\n",
+		pr_debug("dev_num:%d should be dev_num:0 ~ %d in boundary\n",
 		       dev_num, argos_pdata->ndevice - 1);
 		return -EINVAL;
 	}
@@ -292,7 +292,7 @@ int argos_task_affinity_apply(int dev_num, bool enable)
 
 		result = set_cpus_allowed_ptr(this->p, mask);
 
-		pr_info("%s affinity %s to cpu_mask:0x%X\n",
+		pr_debug("%s affinity %s to cpu_mask:0x%X\n",
 			this->p->comm,
 			(enable ? "enable" : "disable"),
 			(int)*mask->bits);
@@ -332,7 +332,7 @@ int argos_irq_affinity_apply(int dev_num, bool enable)
 
 		result = irq_set_affinity(this->irq, mask);
 
-		pr_info("irq%d affinity %s to cpu_mask:0x%X\n",
+		pr_debug("irq%d affinity %s to cpu_mask:0x%X\n",
 			this->irq, (enable ? "enable" : "disable"),
 			(int)*mask->bits);
 	}
@@ -350,13 +350,13 @@ int argos_hmpboost_apply(int dev_num, bool enable)
 		/* disable -> enable */
 		if (!*hmpboost_enable) {
 			*hmpboost_enable = true;
-			pr_info("hmp boost enable [%d]\n", dev_num);
+			pr_debug("hmp boost enable [%d]\n", dev_num);
 		}
 	} else {
 		/* enable -> disable */
 		if (*hmpboost_enable) {
 			*hmpboost_enable = false;
-			pr_info("hmp boost disable [%d]\n", dev_num);
+			pr_debug("hmp boost disable [%d]\n", dev_num);
 		}
 	}
 
@@ -403,12 +403,12 @@ static void argos_freq_unlock(int type)
 
 	cname = argos_pdata->devices[type].desc;
 	if (argos_boost_list_set(type, -1)) {
-		set_freq_limit(DVFS_ARGOS_ID, argos_pdata->boost_max);
-		pr_info("name:%s, updated boost-frequency %d\n",
+		set_freq_limit(argos_pdata->boost_max);
+		pr_debug("name:%s, updated boost-frequency %d\n",
 			cname, argos_pdata->boost_max);
 	}
 
-	pr_info("name:%s\n", cname);
+	pr_debug("name:%s\n", cname);
 }
 
 static void argos_freq_lock(int type, int level)
@@ -429,11 +429,11 @@ static void argos_freq_lock(int type, int level)
 	target_freq = (big_min_freq > little_min_freq) ?
 				big_min_freq : little_min_freq;
 
-	pr_info("name:%s, BIG_MIN=%d, BIG_MAX=%d , LITTLE_MIN=%d, LITTLE_MAX=%d\n",
+	pr_debug("name:%s, BIG_MIN=%d, BIG_MAX=%d , LITTLE_MIN=%d, LITTLE_MAX=%d\n",
 		cname, big_min_freq, big_max_freq, little_min_freq, little_max_freq);
 	if (argos_boost_list_set(type, target_freq)) {
-		set_freq_limit(DVFS_ARGOS_ID, argos_pdata->boost_max);
-		pr_info("name:%s, updated boost-frequency %d\n",
+		set_freq_limit(argos_pdata->boost_max);
+		pr_debug("name:%s, updated boost-frequency %d\n",
 			cname, argos_pdata->boost_max);
 	}
 
@@ -447,7 +447,7 @@ void argos_block_enable(char *req_name, bool set)
 	dev_num = argos_find_index(req_name);
 
 	if (dev_num < 0) {
-		pr_err("No match found for label: %s", req_name);
+		pr_debug("No match found for label: %s", req_name);
 		return;
 	}
 
@@ -465,7 +465,7 @@ void argos_block_enable(char *req_name, bool set)
 	} else {
 		cnode->argos_block = false;
 	}
-	pr_info("req_name:%s block:%d\n",
+	pr_debug("req_name:%s block:%d\n",
 		req_name, cnode->argos_block);
 }
 
@@ -475,7 +475,7 @@ static int argos_cpuidle_reboot_notifier(struct notifier_block *this,
 	switch (event) {
 	case SYSTEM_POWER_OFF:
 	case SYS_RESTART:
-		pr_info("called\n");
+		pr_debug("called\n");
 		pm_qos_remove_notifier(PM_QOS_NETWORK_THROUGHPUT,
 				       &argos_pdata->pm_qos_nfb);
 		break;
@@ -499,7 +499,7 @@ static int argos_pm_qos_notify(struct notifier_block *nfb,
 
 	type = (speedtype & TYPE_MASK_BIT) - 1;
 	if (type < 0 || type > argos_pdata->ndevice) {
-		pr_err("There is no type for devices type[%d], ndevice[%d]\n",
+		pr_debug("There is no type for devices type[%d], ndevice[%d]\n",
 		       type, argos_pdata->ndevice);
 		return NOTIFY_BAD;
 	}
@@ -535,11 +535,11 @@ static int argos_pm_qos_notify(struct notifier_block *nfb,
 			 * is being blocked or is handling another change.
 			 * We don't need to wait.
 			 */
-				pr_warn("skip name:%s, speed:%ldMbps, prev level:%d, request level:%d\n",
+				pr_debug("skip name:%s, speed:%ldMbps, prev level:%d, request level:%d\n",
 					cnode->desc, speed, prev_level, level);
 				goto out;
 			}
-			pr_info("name:%s, speed:%ldMbps, prev level:%d, request level:%d\n",
+			pr_debug("name:%s, speed:%ldMbps, prev level:%d, request level:%d\n",
 				cnode->desc, speed, prev_level, level);
 
 			if (level == -1) {
@@ -662,7 +662,7 @@ static int argos_probe(struct platform_device *pdev)
 	int i, ret = 0;
 	struct argos_platform_data *pdata;
 
-	pr_info("Start probe\n");
+	pr_debug("Start probe\n");
 	if (pdev->dev.of_node) {
 		pdata = devm_kzalloc(&pdev->dev,
 				     sizeof(struct argos_platform_data),
@@ -681,7 +681,7 @@ static int argos_probe(struct platform_device *pdev)
 			dev_err(&pdev->dev, "Failed to parse dt data\n");
 			return ret;
 		}
-		pr_info("parse dt done\n");
+		pr_debug("parse dt done\n");
 
 		pdata->boost_list = devm_kzalloc(&pdev->dev, sizeof(int) * pdata->ndevice, GFP_KERNEL);
 		if (!pdata->boost_list) {
