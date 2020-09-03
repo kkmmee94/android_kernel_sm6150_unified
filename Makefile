@@ -11,6 +11,12 @@ NAME = Petit Gorille
 # Comments in this file are targeted only to the developer, do not
 # expect to learn how to build the kernel reading this file.
 
+# *KERNEL PATH*
+# No need to edit CROSS_COMPILE area. Just Specify the Kernel
+# Path in here and run the Make
+KERNEL_PATH = home/firemax13/r1qkernel
+
+# *FAKING VERSION*
 export ANDROID_MAJOR_VERSION = q
 
 # That's our default target when none is given on the command line
@@ -313,7 +319,7 @@ SUBARCH := $(shell uname -m | sed -e s/i.86/x86/ -e s/x86_64/x86/ \
 # Default value for CROSS_COMPILE is not to prefix executables
 # Note: Some architectures assign CROSS_COMPILE in their arch/*/Makefile
 ARCH		?= arm64
-CROSS_COMPILE	?= /home/firemax13/r1qkernel/toolchain/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+CROSS_COMPILE	?= $(KERNEL_PATH)/toolchain/aarch64-linux/bin/aarch64-linux-android-
 
 # Architecture as present in compile.h
 UTS_MACHINE 	:= $(ARCH)
@@ -429,8 +435,8 @@ LINUXINCLUDE    := \
 KBUILD_AFLAGS   := -D__ASSEMBLY__
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common -fshort-wchar \
-		   -Werror-implicit-function-declaration \
-		   -Wno-format-security \
+		   -Werror-implicit-function-declaration Wno-unused-variable \
+		   -Wno-format-security -Wno-unused-function \
 		   -std=gnu89
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
