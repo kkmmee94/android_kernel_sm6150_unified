@@ -1491,7 +1491,7 @@ static void tavil_codec_enable_slim_port_intr(
 	struct tavil_priv *tavil_p;
 
 	if (!dai || !codec) {
-		pr_err("%s: Invalid params\n", __func__);
+		pr_debug("%s: Invalid params\n", __func__);
 		return;
 	}
 
@@ -1535,7 +1535,7 @@ static int tavil_codec_enable_slim_chmask(struct wcd9xxx_codec_dai_data *dai,
 		list_for_each_entry(ch, &dai->wcd9xxx_ch_list, list) {
 			ret = wcd9xxx_get_slave_port(ch->ch_num);
 			if (ret < 0) {
-				pr_err("%s: Invalid slave port ID: %d\n",
+				pr_debug("%s: Invalid slave port ID: %d\n",
 				       __func__, ret);
 				ret = -EINVAL;
 			} else {
@@ -1547,7 +1547,7 @@ static int tavil_codec_enable_slim_chmask(struct wcd9xxx_codec_dai_data *dai,
 					 msecs_to_jiffies(
 						WCD934X_SLIM_CLOSE_TIMEOUT));
 		if (!ret) {
-			pr_err("%s: Slim close tx/rx wait timeout, ch_mask:0x%lx\n",
+			pr_debug("%s: Slim close tx/rx wait timeout, ch_mask:0x%lx\n",
 				__func__, dai->ch_mask);
 			ret = -ETIMEDOUT;
 		} else {
@@ -1943,7 +1943,7 @@ static int tavil_codec_enable_slimvi_feedback(struct snd_soc_dapm_widget *w,
 		w->name, event, w->shift);
 
 	if (w->shift != AIF4_VIFEED) {
-		pr_err("%s Error in enabling the tx path\n", __func__);
+		pr_debug("%s Error in enabling the tx path\n", __func__);
 		ret = -EINVAL;
 		goto done;
 	}
@@ -3749,7 +3749,7 @@ int tavil_codec_enable_interp_clk(struct snd_soc_codec *codec,
 	u16 main_reg;
 
 	if (!codec) {
-		pr_err("%s: codec is NULL\n", __func__);
+		pr_debug("%s: codec is NULL\n", __func__);
 		return -EINVAL;
 	}
 
@@ -5032,7 +5032,7 @@ int tavil_codec_enable_standalone_micbias(struct snd_soc_codec *codec,
 	int rc;
 
 	if (!codec) {
-		pr_err("%s: Codec memory is NULL\n", __func__);
+		pr_debug("%s: Codec memory is NULL\n", __func__);
 		return -EINVAL;
 	}
 
@@ -9204,7 +9204,7 @@ static ssize_t tavil_codec_version_read(struct snd_info_entry *entry,
 
 	tavil = (struct tavil_priv *) entry->private_data;
 	if (!tavil) {
-		pr_err("%s: tavil priv is null\n", __func__);
+		pr_debug("%s: tavil priv is null\n", __func__);
 		return -EINVAL;
 	}
 
@@ -9850,7 +9850,7 @@ int wcd934x_get_micb_vout_ctl_val(u32 micb_mv)
 {
 	/* min micbias voltage is 1V and maximum is 2.85V */
 	if (micb_mv < 1000 || micb_mv > 2850) {
-		pr_err("%s: unsupported micbias voltage\n", __func__);
+		pr_debug("%s: unsupported micbias voltage\n", __func__);
 		return -EINVAL;
 	}
 
@@ -10036,13 +10036,13 @@ struct wcd934x_mbhc *tavil_soc_get_mbhc(struct snd_soc_codec *codec)
 	struct tavil_priv *tavil;
 
 	if (!codec) {
-		pr_err("%s: Invalid params, NULL codec\n", __func__);
+		pr_debug("%s: Invalid params, NULL codec\n", __func__);
 		return NULL;
 	}
 	tavil = snd_soc_codec_get_drvdata(codec);
 
 	if (!tavil) {
-		pr_err("%s: Invalid params, NULL tavil\n", __func__);
+		pr_debug("%s: Invalid params, NULL tavil\n", __func__);
 		return NULL;
 	}
 
@@ -10287,7 +10287,7 @@ static int tavil_soc_codec_probe(struct snd_soc_codec *codec)
 	/* Initialize MBHC module */
 	ret = tavil_mbhc_init(&tavil->mbhc, codec, tavil->fw_data);
 	if (ret) {
-		pr_err("%s: mbhc initialization failed\n", __func__);
+		pr_debug("%s: mbhc initialization failed\n", __func__);
 		goto err_hwdep;
 	}
 
@@ -10540,7 +10540,7 @@ static int tavil_swrm_read(void *handle, int reg)
 	int val, ret;
 
 	if (!handle) {
-		pr_err("%s: NULL handle\n", __func__);
+		pr_debug("%s: NULL handle\n", __func__);
 		return -EINVAL;
 	}
 	tavil = (struct tavil_priv *)handle;
@@ -10581,11 +10581,11 @@ static int tavil_swrm_bulk_write(void *handle, u32 *reg, u32 *val, size_t len)
 	int i, j, ret;
 
 	if (!handle || !reg || !val) {
-		pr_err("%s: NULL parameter\n", __func__);
+		pr_debug("%s: NULL parameter\n", __func__);
 		return -EINVAL;
 	}
 	if (len <= 0) {
-		pr_err("%s: Invalid size: %zu\n", __func__, len);
+		pr_debug("%s: Invalid size: %zu\n", __func__, len);
 		return -EINVAL;
 	}
 	tavil = (struct tavil_priv *)handle;
@@ -10634,7 +10634,7 @@ static int tavil_swrm_write(void *handle, int reg, int val)
 	int ret;
 
 	if (!handle) {
-		pr_err("%s: NULL handle\n", __func__);
+		pr_debug("%s: NULL handle\n", __func__);
 		return -EINVAL;
 	}
 	tavil = (struct tavil_priv *)handle;
@@ -10668,7 +10668,7 @@ static int tavil_swrm_clock(void *handle, bool enable)
 	struct tavil_priv *tavil;
 
 	if (!handle) {
-		pr_err("%s: NULL handle\n", __func__);
+		pr_debug("%s: NULL handle\n", __func__);
 		return -EINVAL;
 	}
 	tavil = (struct tavil_priv *)handle;
@@ -10717,7 +10717,7 @@ static int tavil_swrm_handle_irq(void *handle,
 	struct wcd9xxx *wcd9xxx;
 
 	if (!handle) {
-		pr_err("%s: NULL handle\n", __func__);
+		pr_debug("%s: NULL handle\n", __func__);
 		return -EINVAL;
 	}
 	tavil = (struct tavil_priv *) handle;
@@ -10835,13 +10835,13 @@ static void tavil_add_child_devices(struct work_struct *work)
 	tavil = container_of(work, struct tavil_priv,
 			     tavil_add_child_devices_work);
 	if (!tavil) {
-		pr_err("%s: Memory for WCD934X does not exist\n",
+		pr_debug("%s: Memory for WCD934X does not exist\n",
 			__func__);
 		return;
 	}
 	wcd9xxx = tavil->wcd9xxx;
 	if (!wcd9xxx) {
-		pr_err("%s: Memory for WCD9XXX does not exist\n",
+		pr_debug("%s: Memory for WCD9XXX does not exist\n",
 			__func__);
 		return;
 	}
@@ -11017,7 +11017,7 @@ struct wcd_dsp_cntl *tavil_get_wcd_dsp_cntl(struct device *dev)
 	struct tavil_priv *tavil;
 
 	if (!dev) {
-		pr_err("%s: Invalid device\n", __func__);
+		pr_debug("%s: Invalid device\n", __func__);
 		return NULL;
 	}
 
@@ -11179,7 +11179,7 @@ static int tavil_probe(struct platform_device *pdev)
 	if (!ret) {
 		snd_event_notify(pdev->dev.parent, SND_EVENT_UP);
 	} else {
-		pr_err("%s: Registration with SND event fwk failed ret = %d\n",
+		pr_debug("%s: Registration with SND event fwk failed ret = %d\n",
 			__func__, ret);
 		ret = 0;
 	}
