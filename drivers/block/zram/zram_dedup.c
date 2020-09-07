@@ -234,7 +234,7 @@ int zram_dedup_init(struct zram *zram, size_t num_pages)
 	zram->hash_size = max_t(size_t, ZRAM_HASH_SIZE_MIN, zram->hash_size);
 	zram->hash = vzalloc(zram->hash_size * sizeof(struct zram_hash));
 	if (!zram->hash) {
-		pr_err("Error allocating zram entry hash\n");
+		pr_debug("Error allocating zram entry hash\n");
 		return -ENOMEM;
 	}
 
