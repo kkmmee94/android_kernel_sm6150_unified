@@ -965,7 +965,7 @@ static int slim_get_port_idx(struct snd_kcontrol *kcontrol)
 					   "SLIM_1_TX", sizeof("SLIM_1_TX"))) {
 		port_id = SLIM_TX_1;
 	} else {
-		pr_err("%s: unsupported channel: %s\n",
+		pr_debug("%s: unsupported channel: %s\n",
 			__func__, kcontrol->id.name);
 		return -EINVAL;
 	}
@@ -1038,7 +1038,7 @@ static int slim_tx_sample_rate_put(struct snd_kcontrol *kcontrol,
 
 	sample_rate = slim_get_sample_rate(ucontrol->value.enumerated.item[0]);
 	if (sample_rate == SAMPLING_RATE_44P1KHZ) {
-		pr_err("%s: Unsupported sample rate %d: for Tx path\n",
+		pr_debug("%s: Unsupported sample rate %d: for Tx path\n",
 			__func__, sample_rate);
 		return -EINVAL;
 	}
@@ -1441,7 +1441,7 @@ static int cdc_dma_get_port_idx(struct snd_kcontrol *kcontrol)
 		sizeof("TX_CDC_DMA_TX_4")))
 		idx = TX_CDC_DMA_TX_4;
 	else {
-		pr_err("%s: unsupported channel: %s\n",
+		pr_debug("%s: unsupported channel: %s\n",
 			__func__, kcontrol->id.name);
 		return -EINVAL;
 	}
@@ -1455,7 +1455,7 @@ static int cdc_dma_rx_ch_get(struct snd_kcontrol *kcontrol,
 	int ch_num = cdc_dma_get_port_idx(kcontrol);
 
 	if (ch_num < 0) {
-		pr_err("%s: ch_num: %d is invalid\n", __func__, ch_num);
+		pr_debug("%s: ch_num: %d is invalid\n", __func__, ch_num);
 		return ch_num;
 	}
 
@@ -1471,7 +1471,7 @@ static int cdc_dma_rx_ch_put(struct snd_kcontrol *kcontrol,
 	int ch_num = cdc_dma_get_port_idx(kcontrol);
 
 	if (ch_num < 0) {
-		pr_err("%s: ch_num: %d is invalid\n", __func__, ch_num);
+		pr_debug("%s: ch_num: %d is invalid\n", __func__, ch_num);
 		return ch_num;
 	}
 
@@ -1488,7 +1488,7 @@ static int cdc_dma_rx_format_get(struct snd_kcontrol *kcontrol,
 	int ch_num = cdc_dma_get_port_idx(kcontrol);
 
 	if (ch_num < 0) {
-		pr_err("%s: ch_num: %d is invalid\n", __func__, ch_num);
+		pr_debug("%s: ch_num: %d is invalid\n", __func__, ch_num);
 		return ch_num;
 	}
 
@@ -1521,7 +1521,7 @@ static int cdc_dma_rx_format_put(struct snd_kcontrol *kcontrol,
 	int ch_num = cdc_dma_get_port_idx(kcontrol);
 
 	if (ch_num < 0) {
-		pr_err("%s: ch_num: %d is invalid\n", __func__, ch_num);
+		pr_debug("%s: ch_num: %d is invalid\n", __func__, ch_num);
 		return ch_num;
 	}
 
@@ -1656,7 +1656,7 @@ static int cdc_dma_rx_sample_rate_get(struct snd_kcontrol *kcontrol,
 	int ch_num = cdc_dma_get_port_idx(kcontrol);
 
 	if (ch_num < 0) {
-		pr_err("%s: ch_num: %d is invalid\n", __func__, ch_num);
+		pr_debug("%s: ch_num: %d is invalid\n", __func__, ch_num);
 		return ch_num;
 	}
 
@@ -1674,7 +1674,7 @@ static int cdc_dma_rx_sample_rate_put(struct snd_kcontrol *kcontrol,
 	int ch_num = cdc_dma_get_port_idx(kcontrol);
 
 	if (ch_num < 0) {
-		pr_err("%s: ch_num: %d is invalid\n", __func__, ch_num);
+		pr_debug("%s: ch_num: %d is invalid\n", __func__, ch_num);
 		return ch_num;
 	}
 
@@ -1694,7 +1694,7 @@ static int cdc_dma_tx_ch_get(struct snd_kcontrol *kcontrol,
 	int ch_num = cdc_dma_get_port_idx(kcontrol);
 
 	if (ch_num < 0) {
-		pr_err("%s: ch_num: %d is invalid\n", __func__, ch_num);
+		pr_debug("%s: ch_num: %d is invalid\n", __func__, ch_num);
 		return ch_num;
 	}
 
@@ -1710,7 +1710,7 @@ static int cdc_dma_tx_ch_put(struct snd_kcontrol *kcontrol,
 	int ch_num = cdc_dma_get_port_idx(kcontrol);
 
 	if (ch_num < 0) {
-		pr_err("%s: ch_num: %d is invalid\n", __func__, ch_num);
+		pr_debug("%s: ch_num: %d is invalid\n", __func__, ch_num);
 		return ch_num;
 	}
 
@@ -1728,7 +1728,7 @@ static int cdc_dma_tx_sample_rate_get(struct snd_kcontrol *kcontrol,
 	int ch_num = cdc_dma_get_port_idx(kcontrol);
 
 	if (ch_num < 0) {
-		pr_err("%s: ch_num: %d is invalid\n", __func__, ch_num);
+		pr_debug("%s: ch_num: %d is invalid\n", __func__, ch_num);
 		return ch_num;
 	}
 
@@ -1789,7 +1789,7 @@ static int cdc_dma_tx_sample_rate_put(struct snd_kcontrol *kcontrol,
 	int ch_num = cdc_dma_get_port_idx(kcontrol);
 
 	if (ch_num < 0) {
-		pr_err("%s: ch_num: %d is invalid\n", __func__, ch_num);
+		pr_debug("%s: ch_num: %d is invalid\n", __func__, ch_num);
 		return ch_num;
 	}
 
@@ -1850,7 +1850,7 @@ static int cdc_dma_tx_format_get(struct snd_kcontrol *kcontrol,
 	int ch_num = cdc_dma_get_port_idx(kcontrol);
 
 	if (ch_num < 0) {
-		pr_err("%s: ch_num: %d is invalid\n", __func__, ch_num);
+		pr_debug("%s: ch_num: %d is invalid\n", __func__, ch_num);
 		return ch_num;
 	}
 
@@ -1883,7 +1883,7 @@ static int cdc_dma_tx_format_put(struct snd_kcontrol *kcontrol,
 	int ch_num = cdc_dma_get_port_idx(kcontrol);
 
 	if (ch_num < 0) {
-		pr_err("%s: ch_num: %d is invalid\n", __func__, ch_num);
+		pr_debug("%s: ch_num: %d is invalid\n", __func__, ch_num);
 		return ch_num;
 	}
 
@@ -2275,7 +2275,7 @@ static int ext_disp_get_port_idx(struct snd_kcontrol *kcontrol)
 		    sizeof("Display Port RX"))) {
 		idx = DP_RX_IDX;
 	} else {
-		pr_err("%s: unsupported BE: %s\n",
+		pr_debug("%s: unsupported BE: %s\n",
 			__func__, kcontrol->id.name);
 		idx = -EINVAL;
 	}
@@ -2588,7 +2588,7 @@ static int tdm_get_port_idx(struct snd_kcontrol *kcontrol,
 		    sizeof(kcontrol->id.name))) {
 			port->mode = TDM_QUIN;
 		} else {
-			pr_err("%s: unsupported mode in: %s\n",
+			pr_debug("%s: unsupported mode in: %s\n",
 				__func__, kcontrol->id.name);
 			return -EINVAL;
 		}
@@ -2634,7 +2634,7 @@ static int tdm_get_port_idx(struct snd_kcontrol *kcontrol,
 			   sizeof(kcontrol->id.name))) {
 			port->channel = TDM_7;
 		} else {
-			pr_err("%s: unsupported channel in: %s\n",
+			pr_debug("%s: unsupported channel in: %s\n",
 				__func__, kcontrol->id.name);
 			return -EINVAL;
 		}
@@ -2651,7 +2651,7 @@ static int tdm_rx_sample_rate_get(struct snd_kcontrol *kcontrol,
 	int ret = tdm_get_port_idx(kcontrol, &port);
 
 	if (ret) {
-		pr_err("%s: unsupported control: %s\n",
+		pr_debug("%s: unsupported control: %s\n",
 			__func__, kcontrol->id.name);
 	} else {
 		ucontrol->value.enumerated.item[0] = tdm_get_sample_rate_val(
@@ -2671,7 +2671,7 @@ static int tdm_rx_sample_rate_put(struct snd_kcontrol *kcontrol,
 	int ret = tdm_get_port_idx(kcontrol, &port);
 
 	if (ret) {
-		pr_err("%s: unsupported control: %s\n",
+		pr_debug("%s: unsupported control: %s\n",
 			__func__, kcontrol->id.name);
 	} else {
 		tdm_rx_cfg[port.mode][port.channel].sample_rate =
@@ -2691,7 +2691,7 @@ static int tdm_tx_sample_rate_get(struct snd_kcontrol *kcontrol,
 	int ret = tdm_get_port_idx(kcontrol, &port);
 
 	if (ret) {
-		pr_err("%s: unsupported control: %s\n",
+		pr_debug("%s: unsupported control: %s\n",
 			__func__, kcontrol->id.name);
 	} else {
 		ucontrol->value.enumerated.item[0] = tdm_get_sample_rate_val(
@@ -2711,7 +2711,7 @@ static int tdm_tx_sample_rate_put(struct snd_kcontrol *kcontrol,
 	int ret = tdm_get_port_idx(kcontrol, &port);
 
 	if (ret) {
-		pr_err("%s: unsupported control: %s\n",
+		pr_debug("%s: unsupported control: %s\n",
 			__func__, kcontrol->id.name);
 	} else {
 		tdm_tx_cfg[port.mode][port.channel].sample_rate =
@@ -2773,7 +2773,7 @@ static int tdm_rx_format_get(struct snd_kcontrol *kcontrol,
 	int ret = tdm_get_port_idx(kcontrol, &port);
 
 	if (ret) {
-		pr_err("%s: unsupported control: %s\n",
+		pr_debug("%s: unsupported control: %s\n",
 			__func__, kcontrol->id.name);
 	} else {
 		ucontrol->value.enumerated.item[0] = tdm_get_format_val(
@@ -2793,7 +2793,7 @@ static int tdm_rx_format_put(struct snd_kcontrol *kcontrol,
 	int ret = tdm_get_port_idx(kcontrol, &port);
 
 	if (ret) {
-		pr_err("%s: unsupported control: %s\n",
+		pr_debug("%s: unsupported control: %s\n",
 			__func__, kcontrol->id.name);
 	} else {
 		tdm_rx_cfg[port.mode][port.channel].bit_format =
@@ -2813,7 +2813,7 @@ static int tdm_tx_format_get(struct snd_kcontrol *kcontrol,
 	int ret = tdm_get_port_idx(kcontrol, &port);
 
 	if (ret) {
-		pr_err("%s: unsupported control: %s\n",
+		pr_debug("%s: unsupported control: %s\n",
 			__func__, kcontrol->id.name);
 	} else {
 		ucontrol->value.enumerated.item[0] = tdm_get_format_val(
@@ -2833,7 +2833,7 @@ static int tdm_tx_format_put(struct snd_kcontrol *kcontrol,
 	int ret = tdm_get_port_idx(kcontrol, &port);
 
 	if (ret) {
-		pr_err("%s: unsupported control: %s\n",
+		pr_debug("%s: unsupported control: %s\n",
 			__func__, kcontrol->id.name);
 	} else {
 		tdm_tx_cfg[port.mode][port.channel].bit_format =
@@ -2853,7 +2853,7 @@ static int tdm_rx_ch_get(struct snd_kcontrol *kcontrol,
 	int ret = tdm_get_port_idx(kcontrol, &port);
 
 	if (ret) {
-		pr_err("%s: unsupported control: %s\n",
+		pr_debug("%s: unsupported control: %s\n",
 			__func__, kcontrol->id.name);
 	} else {
 
@@ -2874,7 +2874,7 @@ static int tdm_rx_ch_put(struct snd_kcontrol *kcontrol,
 	int ret = tdm_get_port_idx(kcontrol, &port);
 
 	if (ret) {
-		pr_err("%s: unsupported control: %s\n",
+		pr_debug("%s: unsupported control: %s\n",
 			__func__, kcontrol->id.name);
 	} else {
 		tdm_rx_cfg[port.mode][port.channel].channels =
@@ -2894,7 +2894,7 @@ static int tdm_tx_ch_get(struct snd_kcontrol *kcontrol,
 	int ret = tdm_get_port_idx(kcontrol, &port);
 
 	if (ret) {
-		pr_err("%s: unsupported control: %s\n",
+		pr_debug("%s: unsupported control: %s\n",
 			__func__, kcontrol->id.name);
 	} else {
 		ucontrol->value.enumerated.item[0] =
@@ -2914,7 +2914,7 @@ static int tdm_tx_ch_put(struct snd_kcontrol *kcontrol,
 	int ret = tdm_get_port_idx(kcontrol, &port);
 
 	if (ret) {
-		pr_err("%s: unsupported control: %s\n",
+		pr_debug("%s: unsupported control: %s\n",
 			__func__, kcontrol->id.name);
 	} else {
 		tdm_tx_cfg[port.mode][port.channel].channels =
@@ -2947,7 +2947,7 @@ static int aux_pcm_get_port_idx(struct snd_kcontrol *kcontrol)
 			 sizeof("QUIN_AUX_PCM"))) {
 		idx = QUIN_AUX_PCM;
 	} else {
-		pr_err("%s: unsupported port: %s\n",
+		pr_debug("%s: unsupported port: %s\n",
 			__func__, kcontrol->id.name);
 		idx = -EINVAL;
 	}
@@ -3062,7 +3062,7 @@ static int mi2s_get_port_idx(struct snd_kcontrol *kcontrol)
 		 sizeof("QUIN_MI2S_TX"))) {
 		idx = QUIN_MI2S;
 	} else {
-		pr_err("%s: unsupported channel: %s\n",
+		pr_debug("%s: unsupported channel: %s\n",
 			__func__, kcontrol->id.name);
 		idx = -EINVAL;
 	}
@@ -4101,7 +4101,7 @@ static int msm_dmic_event(struct snd_soc_dapm_widget *w,
 			ret = msm_cdc_pinctrl_select_active_state(
 						dmic_gpio);
 			if (ret < 0) {
-				pr_err("%s: gpio set cannot be activated %sd",
+				pr_debug("%s: gpio set cannot be activated %sd",
 					__func__, "dmic_gpio");
 				return ret;
 			}
@@ -4114,14 +4114,14 @@ static int msm_dmic_event(struct snd_soc_dapm_widget *w,
 			ret = msm_cdc_pinctrl_select_sleep_state(
 					dmic_gpio);
 			if (ret < 0) {
-				pr_err("%s: gpio set cannot be de-activated %sd",
+				pr_debug("%s: gpio set cannot be de-activated %sd",
 					__func__, "dmic_gpio");
 				return ret;
 			}
 		}
 		break;
 	default:
-		pr_err("%s: invalid DAPM event %d\n", __func__, event);
+		pr_debug("%s: invalid DAPM event %d\n", __func__, event);
 		return -EINVAL;
 	}
 	return 0;
@@ -4157,7 +4157,7 @@ static int cs48l32_fll_event(struct snd_soc_dapm_widget *w,
 			ret = snd_soc_codec_set_pll(codec, pdata->fll1_refclk.id,
 				pdata->fll1_refclk.source, pdata->fll1_refclk.rate, pdata->fll1_refclk.fout);
 			if (ret)
-				pr_err("%s Failed to set FLL: %d\n", __func__, ret);
+				pr_debug("%s Failed to set FLL: %d\n", __func__, ret);
 		}
 		break;
 
@@ -4167,7 +4167,7 @@ static int cs48l32_fll_event(struct snd_soc_dapm_widget *w,
 		pr_debug("%s disabled 32k refclk\n", __func__);
 		ret = snd_soc_codec_set_pll(codec, pdata->fll1_refclk.id, 0, 0, 0);
 		if (ret) {
-			pr_err("%s Failed to stop FLL: %d\n", __func__, ret);
+			pr_debug("%s Failed to stop FLL: %d\n", __func__, ret);
 			return ret;
 		}
 		break;
@@ -4318,7 +4318,7 @@ static int msm_ext_disp_get_idx_from_beid(int32_t be_id)
 		idx = DP_RX_IDX;
 		break;
 	default:
-		pr_err("%s: Incorrect ext_disp BE id %d\n", __func__, be_id);
+		pr_debug("%s: Incorrect ext_disp BE id %d\n", __func__, be_id);
 		idx = -EINVAL;
 		break;
 	}
@@ -4397,7 +4397,7 @@ static int msm_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 			rc = afe_set_config(AFE_SLIMBUS_SLAVE_PORT_CONFIG,
 					    config, SLIMBUS_5_TX);
 			if (rc)
-				pr_err("%s: Failed to set slimbus slave port config %d\n",
+				pr_debug("%s: Failed to set slimbus slave port config %d\n",
 					__func__, rc);
 		}
 		break;
@@ -4439,7 +4439,7 @@ static int msm_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 	case MSM_BACKEND_DAI_DISPLAY_PORT_RX:
 		idx = msm_ext_disp_get_idx_from_beid(dai_link->id);
 		if (idx < 0) {
-			pr_err("%s: Incorrect ext disp idx %d\n",
+			pr_debug("%s: Incorrect ext disp idx %d\n",
 			       __func__, idx);
 			rc = idx;
 			goto done;
@@ -4767,7 +4767,7 @@ static bool msm_swap_gnd_mic(struct snd_soc_codec *codec, bool active)
 	struct msm_asoc_mach_data *pdata;
 
 	if (!codec) {
-		pr_err("%s codec is NULL\n", __func__);
+		pr_debug("%s codec is NULL\n", __func__);
 		return false;
 	}
 	card = codec->component.card;
@@ -4877,14 +4877,14 @@ static int msm_audrx_tavil_init(struct snd_soc_pcm_runtime *rtd)
 					      134, 135, 136, 137, 138, 139,
 					      140, 141, 142, 143};
 
-	pr_info("%s: dev_name:%s\n", __func__, dev_name(cpu_dai->dev));
+	pr_debug("%s: dev_name:%s\n", __func__, dev_name(cpu_dai->dev));
 
 	rtd->pmdown_time = 0;
 
 	ret = snd_soc_add_codec_controls(codec, msm_ext_snd_controls,
 					 ARRAY_SIZE(msm_ext_snd_controls));
 	if (ret < 0) {
-		pr_err("%s: add_codec_controls failed, err %d\n",
+		pr_debug("%s: add_codec_controls failed, err %d\n",
 			__func__, ret);
 		return ret;
 	}
@@ -4892,7 +4892,7 @@ static int msm_audrx_tavil_init(struct snd_soc_pcm_runtime *rtd)
 	ret = snd_soc_add_codec_controls(codec, msm_common_snd_controls,
 					 ARRAY_SIZE(msm_common_snd_controls));
 	if (ret < 0) {
-		pr_err("%s: add_codec_controls failed, err %d\n",
+		pr_debug("%s: add_codec_controls failed, err %d\n",
 			__func__, ret);
 		return ret;
 	}
@@ -4940,7 +4940,7 @@ static int msm_audrx_tavil_init(struct snd_soc_pcm_runtime *rtd)
 
 	ret = msm_afe_set_config(codec);
 	if (ret) {
-		pr_err("%s: Failed to set AFE config %d\n", __func__, ret);
+		pr_debug("%s: Failed to set AFE config %d\n", __func__, ret);
 		goto err;
 	}
 	pdata->is_afe_config_done = true;
@@ -4950,7 +4950,7 @@ static int msm_audrx_tavil_init(struct snd_soc_pcm_runtime *rtd)
 	if (config_data) {
 		ret = afe_set_config(AFE_AANC_VERSION, config_data, 0);
 		if (ret) {
-			pr_err("%s: Failed to set aanc version %d\n",
+			pr_debug("%s: Failed to set aanc version %d\n",
 				__func__, ret);
 			goto err;
 		}
@@ -5019,14 +5019,14 @@ static int msm_audrx_tasha_init(struct snd_soc_pcm_runtime *rtd)
 					     134, 135, 136, 137, 138, 139,
 					     140, 141, 142, 143};
 
-	pr_info("%s: dev_name:%s\n", __func__, dev_name(cpu_dai->dev));
+	pr_debug("%s: dev_name:%s\n", __func__, dev_name(cpu_dai->dev));
 
 	rtd->pmdown_time = 0;
 
 	ret = snd_soc_add_codec_controls(codec, msm_ext_snd_controls,
 					 ARRAY_SIZE(msm_ext_snd_controls));
 	if (ret < 0) {
-		pr_err("%s: add_codec_controls failed, err %d\n",
+		pr_debug("%s: add_codec_controls failed, err %d\n",
 			__func__, ret);
 		return ret;
 	}
@@ -5034,7 +5034,7 @@ static int msm_audrx_tasha_init(struct snd_soc_pcm_runtime *rtd)
 	ret = snd_soc_add_codec_controls(codec, msm_common_snd_controls,
 					 ARRAY_SIZE(msm_common_snd_controls));
 	if (ret < 0) {
-		pr_err("%s: add_codec_controls failed, err %d\n",
+		pr_debug("%s: add_codec_controls failed, err %d\n",
 			__func__, ret);
 		return ret;
 	}
@@ -5110,7 +5110,7 @@ static int msm_audrx_tasha_init(struct snd_soc_pcm_runtime *rtd)
 
 	ret = msm_afe_set_config(codec);
 	if (ret) {
-		pr_err("%s: Failed to set AFE config %d\n", __func__, ret);
+		pr_debug("%s: Failed to set AFE config %d\n", __func__, ret);
 		goto err;
 	}
 	pdata->is_afe_config_done = true;
@@ -5120,7 +5120,7 @@ static int msm_audrx_tasha_init(struct snd_soc_pcm_runtime *rtd)
 	if (config_data) {
 		ret = afe_set_config(AFE_AANC_VERSION, config_data, 0);
 		if (ret) {
-			pr_err("%s: Failed to set aanc version %d\n",
+			pr_debug("%s: Failed to set aanc version %d\n",
 				__func__, ret);
 			goto err;
 		}
@@ -5178,14 +5178,14 @@ static int msm_int_audrx_init(struct snd_soc_pcm_runtime *rtd)
 	ret = snd_soc_add_codec_controls(codec, msm_int_snd_controls,
 				ARRAY_SIZE(msm_int_snd_controls));
 	if (ret < 0) {
-		pr_err("%s: add_codec_controls failed: %d\n",
+		pr_debug("%s: add_codec_controls failed: %d\n",
 			__func__, ret);
 		return ret;
 	}
 	ret = snd_soc_add_codec_controls(codec, msm_common_snd_controls,
 				ARRAY_SIZE(msm_common_snd_controls));
 	if (ret < 0) {
-		pr_err("%s: add common snd controls failed: %d\n",
+		pr_debug("%s: add common snd controls failed: %d\n",
 			__func__, ret);
 		return ret;
 	}
@@ -5329,7 +5329,7 @@ static void *def_wcd_mbhc_cal(struct snd_soc_card *card)
 		ret = of_parse_phandle_with_args(cdev->of_node,
 			"mbhc-button-thres", "#list-det-cells", i, &args);
 		if (ret < 0) {
-			pr_info("%s: btn_high[%d] = %d (default)\n",
+			pr_debug("%s: btn_high[%d] = %d (default)\n",
 					__func__, i, btn_high[i]);
 			continue;
 		}
@@ -5339,7 +5339,7 @@ static void *def_wcd_mbhc_cal(struct snd_soc_card *card)
 #else
 		btn_high[i] = args.args[0];
 #endif
-		pr_info("%s: btn_high[%d] = %d (modified)\n",
+		pr_debug("%s: btn_high[%d] = %d (modified)\n",
 				__func__, i, btn_high[i]);
 	}
 
@@ -5364,7 +5364,7 @@ static int msm_snd_hw_params(struct snd_pcm_substream *substream,
 		ret = snd_soc_dai_get_channel_map(codec_dai,
 					&tx_ch_cnt, tx_ch, &rx_ch_cnt, rx_ch);
 		if (ret < 0) {
-			pr_err("%s: failed to get codec chan map, err:%d\n",
+			pr_debug("%s: failed to get codec chan map, err:%d\n",
 				__func__, ret);
 			goto err;
 		}
@@ -5388,7 +5388,7 @@ static int msm_snd_hw_params(struct snd_pcm_substream *substream,
 		ret = snd_soc_dai_set_channel_map(cpu_dai, 0, 0,
 						  rx_ch_count, rx_ch);
 		if (ret < 0) {
-			pr_err("%s: failed to set cpu chan map, err:%d\n",
+			pr_debug("%s: failed to set cpu chan map, err:%d\n",
 				__func__, ret);
 			goto err;
 		}
@@ -5399,7 +5399,7 @@ static int msm_snd_hw_params(struct snd_pcm_substream *substream,
 		ret = snd_soc_dai_get_channel_map(codec_dai,
 					 &tx_ch_cnt, tx_ch, &rx_ch_cnt, rx_ch);
 		if (ret < 0) {
-			pr_err("%s: failed to get tx codec chan map, err:%d\n",
+			pr_debug("%s: failed to get tx codec chan map, err:%d\n",
 				__func__, ret);
 			goto err;
 		}
@@ -5421,7 +5421,7 @@ static int msm_snd_hw_params(struct snd_pcm_substream *substream,
 		ret = snd_soc_dai_set_channel_map(cpu_dai,
 						  user_set_tx_ch, tx_ch, 0, 0);
 		if (ret < 0)
-			pr_err("%s: failed to set tx cpu chan map, err:%d\n",
+			pr_debug("%s: failed to set tx cpu chan map, err:%d\n",
 				__func__, ret);
 	}
 
@@ -5449,7 +5449,7 @@ static int msm_snd_cdc_dma_hw_params(struct snd_pcm_substream *substream,
 				&tx_ch_cnt, &tx_ch_cdc_dma, &rx_ch_cnt,
 				&rx_ch_cdc_dma);
 	if (ret < 0) {
-		pr_err("%s: failed to get codec chan map, err:%d\n",
+		pr_debug("%s: failed to get codec chan map, err:%d\n",
 			__func__, ret);
 		goto err;
 	}
@@ -5472,7 +5472,7 @@ static int msm_snd_cdc_dma_hw_params(struct snd_pcm_substream *substream,
 			ret = snd_soc_dai_set_channel_map(cpu_dai, 0, 0,
 					  user_set_rx_ch, &rx_ch_cdc_dma);
 			if (ret < 0) {
-				pr_err("%s: failed to set cpu chan map, err:%d\n",
+				pr_debug("%s: failed to set cpu chan map, err:%d\n",
 				__func__, ret);
 				goto err;
 			}
@@ -5504,7 +5504,7 @@ static int msm_snd_cdc_dma_hw_params(struct snd_pcm_substream *substream,
 		ret = snd_soc_dai_set_channel_map(cpu_dai, user_set_tx_ch,
 					&tx_ch_cdc_dma, 0, 0);
 		if (ret < 0) {
-			pr_err("%s: failed to set cpu chan map, err:%d\n",
+			pr_debug("%s: failed to set cpu chan map, err:%d\n",
 			__func__, ret);
 			goto err;
 		}
@@ -5533,14 +5533,14 @@ static int msm_slimbus_2_hw_params(struct snd_pcm_substream *substream,
 		ret = snd_soc_dai_get_channel_map(codec_dai,
 				&tx_ch_cnt, tx_ch, &rx_ch_cnt, rx_ch);
 		if (ret < 0) {
-			pr_err("%s: failed to get codec chan map, err:%d\n",
+			pr_debug("%s: failed to get codec chan map, err:%d\n",
 				__func__, ret);
 			goto err;
 		}
 		ret = snd_soc_dai_set_channel_map(cpu_dai, 0, 0,
 				num_rx_ch, rx_ch);
 		if (ret < 0) {
-			pr_err("%s: failed to set cpu chan map, err:%d\n",
+			pr_debug("%s: failed to set cpu chan map, err:%d\n",
 				__func__, ret);
 			goto err;
 		}
@@ -5551,14 +5551,14 @@ static int msm_slimbus_2_hw_params(struct snd_pcm_substream *substream,
 		ret = snd_soc_dai_get_channel_map(codec_dai,
 				&tx_ch_cnt, tx_ch, &rx_ch_cnt, rx_ch);
 		if (ret < 0) {
-			pr_err("%s: failed to get tx codec chan map, err:%d\n",
+			pr_debug("%s: failed to get tx codec chan map, err:%d\n",
 				__func__, ret);
 			goto err;
 		}
 		ret = snd_soc_dai_set_channel_map(cpu_dai,
 				num_tx_ch, tx_ch, 0, 0);
 		if (ret < 0) {
-			pr_err("%s: failed to set tx cpu chan map, err:%d\n",
+			pr_debug("%s: failed to set tx cpu chan map, err:%d\n",
 				__func__, ret);
 			goto err;
 		}
@@ -5615,7 +5615,7 @@ int msm_snd_cpe_hw_params(struct snd_pcm_substream *substream,
 	u32 tx_ch_cnt = 0;
 
 	if (substream->stream != SNDRV_PCM_STREAM_CAPTURE) {
-		pr_err("%s: Invalid stream type %d\n",
+		pr_debug("%s: Invalid stream type %d\n",
 			__func__, substream->stream);
 		ret = -EINVAL;
 		goto end;
@@ -5626,7 +5626,7 @@ int msm_snd_cpe_hw_params(struct snd_pcm_substream *substream,
 	ret = snd_soc_dai_get_channel_map(codec_dai,
 				 &tx_ch_cnt, tx_ch, NULL, NULL);
 	if (ret < 0) {
-		pr_err("%s: failed to get codec chan map\n, err:%d\n",
+		pr_debug("%s: failed to get codec chan map\n, err:%d\n",
 			__func__, ret);
 		goto end;
 	}
@@ -5637,7 +5637,7 @@ int msm_snd_cpe_hw_params(struct snd_pcm_substream *substream,
 	ret = snd_soc_dai_set_channel_map(cpu_dai,
 					  tx_ch_cnt, tx_ch, 0, 0);
 	if (ret < 0) {
-		pr_err("%s: failed to set cpu chan map, err:%d\n",
+		pr_debug("%s: failed to set cpu chan map, err:%d\n",
 			__func__, ret);
 		goto end;
 	}
@@ -5681,7 +5681,7 @@ static int msm_get_port_id(int be_id)
 		afe_port_id = AFE_PORT_ID_QUINARY_MI2S_TX;
 		break;
 	default:
-		pr_err("%s: Invalid BE id: %d\n", __func__, be_id);
+		pr_debug("%s: Invalid BE id: %d\n", __func__, be_id);
 		afe_port_id = -EINVAL;
 	}
 
@@ -5806,7 +5806,7 @@ static int sm6150_tdm_snd_hw_params(struct snd_pcm_substream *substream,
 		break;
 
 	default:
-		pr_err("%s: dai id 0x%x not supported\n",
+		pr_debug("%s: dai id 0x%x not supported\n",
 			__func__, cpu_dai->id);
 		return -EINVAL;
 	}
@@ -5822,7 +5822,7 @@ static int sm6150_tdm_snd_hw_params(struct snd_pcm_substream *substream,
 		ret = snd_soc_dai_set_tdm_slot(cpu_dai, 0, slot_mask,
 			slots, slot_width);
 		if (ret < 0) {
-			pr_err("%s: failed to set tdm rx slot, err:%d\n",
+			pr_debug("%s: failed to set tdm rx slot, err:%d\n",
 				__func__, ret);
 			goto end;
 		}
@@ -5830,7 +5830,7 @@ static int sm6150_tdm_snd_hw_params(struct snd_pcm_substream *substream,
 		ret = snd_soc_dai_set_channel_map(cpu_dai,
 			0, NULL, channels, slot_offset);
 		if (ret < 0) {
-			pr_err("%s: failed to set tdm rx channel map, err:%d\n",
+			pr_debug("%s: failed to set tdm rx channel map, err:%d\n",
 				__func__, ret);
 			goto end;
 		}
@@ -5845,7 +5845,7 @@ static int sm6150_tdm_snd_hw_params(struct snd_pcm_substream *substream,
 		ret = snd_soc_dai_set_tdm_slot(cpu_dai, slot_mask, 0,
 			slots, slot_width);
 		if (ret < 0) {
-			pr_err("%s: failed to set tdm tx slot, err:%d\n",
+			pr_debug("%s: failed to set tdm tx slot, err:%d\n",
 				__func__, ret);
 			goto end;
 		}
@@ -5853,13 +5853,13 @@ static int sm6150_tdm_snd_hw_params(struct snd_pcm_substream *substream,
 		ret = snd_soc_dai_set_channel_map(cpu_dai,
 			channels, slot_offset, 0, NULL);
 		if (ret < 0) {
-			pr_err("%s: failed to set tdm tx channel map, err:%d\n",
+			pr_debug("%s: failed to set tdm tx channel map, err:%d\n",
 				__func__, ret);
 			goto end;
 		}
 	} else {
 		ret = -EINVAL;
-		pr_err("%s: invalid use case, err:%d\n",
+		pr_debug("%s: invalid use case, err:%d\n",
 			__func__, ret);
 		goto end;
 	}
@@ -5868,7 +5868,7 @@ static int sm6150_tdm_snd_hw_params(struct snd_pcm_substream *substream,
 	clk_freq = rate * slot_width * slots;
 	ret = snd_soc_dai_set_sysclk(cpu_dai, 0, clk_freq, SND_SOC_CLOCK_OUT);
 	if (ret < 0)
-		pr_err("%s: failed to set tdm clk, err:%d\n",
+		pr_debug("%s: failed to set tdm clk, err:%d\n",
 			__func__, ret);
 
 end:
@@ -5901,7 +5901,7 @@ static int msm_get_tdm_mode(u32 port_id)
 		tdm_mode = TDM_QUIN;
 	break;
 	default:
-		pr_err("%s: Invalid port id: %d\n", __func__, port_id);
+		pr_debug("%s: Invalid port id: %d\n", __func__, port_id);
 		tdm_mode = -EINVAL;
 	}
 	return tdm_mode;
@@ -5960,7 +5960,7 @@ static int msm_fm_snd_startup(struct snd_pcm_substream *substream)
 	struct msm_asoc_mach_data *pdata =
 		snd_soc_card_get_drvdata(rtd->card);
 
-	pr_info("%s: startup\n", __func__);
+	pr_debug("%s: startup\n", __func__);
 
 	if (pdata->fm_lna_en > 0) {
 		gpio_direction_output(pdata->fm_lna_en, 1);
@@ -5975,7 +5975,7 @@ static void msm_fm_snd_shutdown(struct snd_pcm_substream *substream)
 	struct msm_asoc_mach_data *pdata =
 		snd_soc_card_get_drvdata(rtd->card);
 
-	pr_info("%s: shutdown\n", __func__);
+	pr_debug("%s: shutdown\n", __func__);
 
 	if (pdata->fm_lna_en > 0) {
 		gpio_direction_output(pdata->fm_lna_en, 0);
@@ -6065,7 +6065,7 @@ static int msm_mi2s_snd_startup(struct snd_pcm_substream *substream)
 
 		ret = snd_soc_dai_set_fmt(cpu_dai, fmt);
 		if (ret < 0) {
-			pr_err("%s: set fmt cpu dai failed for MI2S (%d), err:%d\n",
+			pr_debug("%s: set fmt cpu dai failed for MI2S (%d), err:%d\n",
 				__func__, index, ret);
 			goto clk_off;
 		}
@@ -6075,7 +6075,7 @@ static int msm_mi2s_snd_startup(struct snd_pcm_substream *substream)
 			ret = afe_set_lpass_clock_v2(port_id,
 							 &mi2s_mclk[index]);
 			if (ret < 0) {
-				pr_err("%s: afe lpass mclk failed, err:%d\n",
+				pr_debug("%s: afe lpass mclk failed, err:%d\n",
 					__func__, ret);
 				goto clk_off;
 			}
@@ -6114,7 +6114,7 @@ static void msm_mi2s_snd_shutdown(struct snd_pcm_substream *substream)
 	}
 
 	if (index < PRIM_MI2S || index >= MI2S_MAX) {
-		pr_err("%s:invalid MI2S DAI(%d)\n", __func__, index);
+		pr_debug("%s:invalid MI2S DAI(%d)\n", __func__, index);
 		return;
 	}
 
@@ -6126,7 +6126,7 @@ static void msm_mi2s_snd_shutdown(struct snd_pcm_substream *substream)
 
 		ret = msm_mi2s_set_sclk(substream, false);
 		if (ret < 0)
-			pr_err("%s:clock disable failed for MI2S (%d); ret=%d\n",
+			pr_debug("%s:clock disable failed for MI2S (%d); ret=%d\n",
 				__func__, index, ret);
 
 		if (mi2s_intf_conf[index].msm_is_ext_mclk) {
@@ -6135,7 +6135,7 @@ static void msm_mi2s_snd_shutdown(struct snd_pcm_substream *substream)
 			ret = afe_set_lpass_clock_v2(port_id,
 							 &mi2s_mclk[index]);
 			if (ret < 0)
-				pr_err("%s: mclk disable failed for MCLK (%d); ret=%d\n",
+				pr_debug("%s: mclk disable failed for MCLK (%d); ret=%d\n",
 					__func__, index, ret);
 			mi2s_mclk[index].enable = 0;
 		}
@@ -6159,7 +6159,7 @@ static int cs48l32_init(struct snd_soc_pcm_runtime *rtd)
 	ret = snd_soc_codec_set_sysclk(codec, pdata->sysclk.id,
 					   pdata->sysclk.source, pdata->sysclk.rate, SND_SOC_CLOCK_IN);
 	if (ret)
-		pr_err("%s Failed to set SYSCLK: %d\n", __func__, ret);
+		pr_debug("%s Failed to set SYSCLK: %d\n", __func__, ret);
 
 
 	snd_soc_dapm_new_controls(dapm, cs48l32_dapm_widgets,
@@ -6238,7 +6238,7 @@ static int msm_cs48l32_snd_startup(struct snd_pcm_substream *substream)
 
 		ret = snd_soc_dai_set_fmt(cpu_dai, fmt);
 		if (ret < 0) {
-			pr_err("%s: set fmt cpu dai failed for MI2S (%d), err:%d\n",
+			pr_debug("%s: set fmt cpu dai failed for MI2S (%d), err:%d\n",
 				__func__, index, ret);
 			goto clk_off;
 		}
@@ -6248,7 +6248,7 @@ static int msm_cs48l32_snd_startup(struct snd_pcm_substream *substream)
 			ret = afe_set_lpass_clock_v2(port_id,
 							 &mi2s_mclk[index]);
 			if (ret < 0) {
-				pr_err("%s: afe lpass mclk failed, err:%d\n",
+				pr_debug("%s: afe lpass mclk failed, err:%d\n",
 					__func__, ret);
 				goto clk_off;
 			}
@@ -6306,7 +6306,7 @@ static void msm_cs48l32_snd_shutdown(struct snd_pcm_substream *substream)
 		ret = snd_soc_codec_set_pll(codec, pdata->fll1_refclk.id,
 			pdata->fll1_refclk.source, pdata->fll1_refclk.rate, pdata->fll1_refclk.fout);
 		if (ret)
-			pr_err("%s Failed to start FLL\n", __func__);
+			pr_debug("%s Failed to start FLL\n", __func__);
 	}
 
 	if (port_id < 0) {
@@ -6315,7 +6315,7 @@ static void msm_cs48l32_snd_shutdown(struct snd_pcm_substream *substream)
 	}
 
 	if (index < PRIM_MI2S || index >= MI2S_MAX) {
-		pr_err("%s:invalid MI2S DAI(%d)\n", __func__, index);
+		pr_debug("%s:invalid MI2S DAI(%d)\n", __func__, index);
 		return;
 	}
 
@@ -6327,7 +6327,7 @@ static void msm_cs48l32_snd_shutdown(struct snd_pcm_substream *substream)
 
 		ret = msm_mi2s_set_sclk(substream, false);
 		if (ret < 0)
-			pr_err("%s:clock disable failed for MI2S (%d); ret=%d\n",
+			pr_debug("%s:clock disable failed for MI2S (%d); ret=%d\n",
 				__func__, index, ret);
 
 		if (mi2s_intf_conf[index].msm_is_ext_mclk) {
@@ -6336,7 +6336,7 @@ static void msm_cs48l32_snd_shutdown(struct snd_pcm_substream *substream)
 			ret = afe_set_lpass_clock_v2(port_id,
 							 &mi2s_mclk[index]);
 			if (ret < 0)
-				pr_err("%s: mclk disable failed for MCLK (%d); ret=%d\n",
+				pr_debug("%s: mclk disable failed for MCLK (%d); ret=%d\n",
 					__func__, index, ret);
 			mi2s_mclk[index].enable = 0;
 		}
@@ -8615,7 +8615,7 @@ static int msm_populate_dai_link_component_of_node(
 	struct device_node *np;
 
 	if (!cdev) {
-		pr_err("%s: Sound card device memory NULL\n", __func__);
+		pr_debug("%s: Sound card device memory NULL\n", __func__);
 		return -ENODEV;
 	}
 
@@ -8630,7 +8630,7 @@ static int msm_populate_dai_link_component_of_node(
 						"asoc-platform-names",
 						dai_link[i].platform_name);
 			if (index < 0) {
-				pr_err("%s: No match found for platform name: %s\n",
+				pr_debug("%s: No match found for platform name: %s\n",
 					__func__, dai_link[i].platform_name);
 				ret = index;
 				goto err;
@@ -8638,7 +8638,7 @@ static int msm_populate_dai_link_component_of_node(
 			np = of_parse_phandle(cdev->of_node, "asoc-platform",
 					      index);
 			if (!np) {
-				pr_err("%s: retrieving phandle for platform %s, index %d failed\n",
+				pr_debug("%s: retrieving phandle for platform %s, index %d failed\n",
 					__func__, dai_link[i].platform_name,
 					index);
 				ret = -ENODEV;
@@ -8657,7 +8657,7 @@ static int msm_populate_dai_link_component_of_node(
 				np = of_parse_phandle(cdev->of_node, "asoc-cpu",
 						index);
 				if (!np) {
-					pr_err("%s: retrieving phandle for cpu dai %s failed\n",
+					pr_debug("%s: retrieving phandle for cpu dai %s failed\n",
 						__func__,
 						dai_link[i].cpu_dai_name);
 					ret = -ENODEV;
@@ -8678,7 +8678,7 @@ static int msm_populate_dai_link_component_of_node(
 			np = of_parse_phandle(cdev->of_node, "asoc-codec",
 					      index);
 			if (!np) {
-				pr_err("%s: retrieving phandle for codec %s failed\n",
+				pr_debug("%s: retrieving phandle for codec %s failed\n",
 					__func__, dai_link[i].codec_name);
 				ret = -ENODEV;
 				goto err;
@@ -8727,14 +8727,14 @@ static int msm_snd_stub_hw_params(struct snd_pcm_substream *substream,
 					slim_rx_cfg[SLIM_RX_0].channels,
 					rx_ch);
 		if (ret < 0)
-			pr_err("%s: RX failed to set cpu chan map error %d\n",
+			pr_debug("%s: RX failed to set cpu chan map error %d\n",
 				__func__, ret);
 	} else {
 		ret = snd_soc_dai_set_channel_map(cpu_dai,
 					slim_tx_cfg[SLIM_TX_0].channels,
 					tx_ch, 0, 0);
 		if (ret < 0)
-			pr_err("%s: TX failed to set cpu chan map error %d\n",
+			pr_debug("%s: TX failed to set cpu chan map error %d\n",
 				__func__, ret);
 	}
 
@@ -8823,7 +8823,7 @@ static int msm_cs48l32_prepare(struct snd_pcm_substream *substream)
 	ret = snd_soc_codec_set_pll(codec, pdata->fll1_refclk_bclk.id,
 		pdata->fll1_refclk_bclk.source, pdata->fll1_refclk_bclk.rate, pdata->fll1_refclk_bclk.fout);
 	if (ret)
-		pr_err("%s Failed to start FLL\n", __func__);
+		pr_debug("%s Failed to start FLL\n", __func__);
 
 	return 0;
 }
@@ -9076,7 +9076,7 @@ static int msm_wsa881x_init(struct snd_soc_component *component)
 	int ret = 0;
 
 	if (!codec) {
-		pr_err("%s codec is NULL\n", __func__);
+		pr_debug("%s codec is NULL\n", __func__);
 		return -EINVAL;
 	}
 
@@ -9113,7 +9113,7 @@ static int msm_wsa881x_init(struct snd_soc_component *component)
 		entry = snd_info_create_subdir(card->module, "codecs",
 						 card->proc_root);
 		if (!entry) {
-			pr_err("%s: Cannot create codecs module entry\n",
+			pr_debug("%s: Cannot create codecs module entry\n",
 				 __func__);
 			ret = 0;
 			goto err;
@@ -9151,7 +9151,7 @@ static int msm_aux_codec_init(struct snd_soc_component *component)
 		entry = snd_info_create_subdir(card->module, "codecs",
 						 card->proc_root);
 		if (!entry) {
-			pr_err("%s: Cannot create codecs module entry\n",
+			pr_debug("%s: Cannot create codecs module entry\n",
 				 __func__);
 			ret = 0;
 			goto codec_root_err;
@@ -9593,7 +9593,7 @@ static int msm_ext_prepare_hifi(struct msm_asoc_mach_data *pdata)
 			pdata->hph_en1_gpio);
 		ret = gpio_request(pdata->hph_en1_gpio, "hph_en1_gpio");
 		if (ret) {
-			pr_err("%s: hph_en1_gpio request failed, ret:%d\n",
+			pr_debug("%s: hph_en1_gpio request failed, ret:%d\n",
 				__func__, ret);
 			goto err;
 		}
@@ -9603,7 +9603,7 @@ static int msm_ext_prepare_hifi(struct msm_asoc_mach_data *pdata)
 			pdata->hph_en0_gpio);
 		ret = gpio_request(pdata->hph_en0_gpio, "hph_en0_gpio");
 		if (ret)
-			pr_err("%s: hph_en0_gpio request failed, ret:%d\n",
+			pr_debug("%s: hph_en0_gpio request failed, ret:%d\n",
 				__func__, ret);
 	}
 
@@ -9787,7 +9787,7 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 	}
 
 	ret = msm_init_aux_dev(pdev, card);
-	pr_info("msm_asoc_machine_probe msm_init_aux_dev ret %d\n", ret);
+	pr_debug("msm_asoc_machine_probe msm_init_aux_dev ret %d\n", ret);
 	if (ret)
 		goto err;
 #ifdef CONFIG_SND_SOC_TAS2562
@@ -9796,7 +9796,7 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 #endif
 
 	ret = devm_snd_soc_register_card(&pdev->dev, card);
-	pr_info("msm_asoc_machine_probe devm_snd_soc_register_card ret %d\n", ret);
+	pr_debug("msm_asoc_machine_probe devm_snd_soc_register_card ret %d\n", ret);
 	if (ret == -EPROBE_DEFER) {
 		if (codec_reg_done)
 			ret = -EINVAL;
@@ -9912,7 +9912,7 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 
 	ret = msm_audio_ssr_register(&pdev->dev);
 	if (ret)
-		pr_err("%s: Registration with SND event FWK failed ret = %d\n",
+		pr_debug("%s: Registration with SND event FWK failed ret = %d\n",
 			__func__, ret);
 
 	pdata->dmic_ldo_en = of_get_named_gpio(pdev->dev.of_node,
