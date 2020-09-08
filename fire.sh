@@ -7,7 +7,7 @@ set -e
 KERNEL_PATH=/home/firemax13/r1qkernel
 
 # Export GCC and ARCH
-export CROSS_COMPILE=$KERNEL_PATH/toolchain/aarch64-linux/bin/aarch64-linux-android-
+export CROSS_COMPILE=$KERNEL_PATH/toolchain/aarch64-linux-android-4.9/bin/aarch64-linux-android-
 export ARCH=arm64
 
 # Output hacking & tricking
@@ -16,7 +16,7 @@ if [ ! -d out ]; then
 fi
 
 # Types, paths, and more etc.
-BUILD_CROSS_COMPILE=$KERNEL_PATH/toolchain/aarch64-linux/bin/aarch64-linux-android-
+BUILD_CROSS_COMPILE=$KERNEL_PATH/toolchain/aarch64-linux-android-4.9/bin/aarch64-linux-android-
 KERNEL_LLVM_BIN=$KERNEL_PATH/toolchain/clang/bin/clang
 CLANG_TRIPLE=aarch64-linux-gnu-
 KERNEL_MAKE_ENV="CONFIG_BUILD_ARM64_DT_OVERLAY=y"
