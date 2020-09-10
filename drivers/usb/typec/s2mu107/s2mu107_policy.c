@@ -936,7 +936,6 @@ policy_state usbpd_policy_snk_startup(struct policy_data *policy)
 
 	/* PD State Inform for AP */
 	dev_info(pd_data->dev, "%s\n", __func__);
-	pd_data->phy_ops.set_rp_control(pd_data, PLUG_CTRL_RP80);
 
 	/* PD Protocol Initialization */
 	usbpd_init_protocol(pd_data);
@@ -1415,7 +1414,6 @@ policy_state usbpd_policy_snk_ready(struct policy_data *policy)
 
 		/* Command Check from AP */
 		CHECK_CMD(pd_data, MANAGER_REQ_NEW_POWER_SRC, PE_SNK_Select_Capability);
-		CHECK_CMD(pd_data, MANAGER_REQ_GET_SRC_CAP, PE_SNK_Get_Source_Cap);
 		CHECK_CMD(pd_data, MANAGER_REQ_PR_SWAP, PE_PRS_SNK_SRC_Send_Swap);
 		CHECK_CMD(pd_data, MANAGER_REQ_DR_SWAP, PE_DRS_Evaluate_Send_Port);
 		CHECK_CMD(pd_data, MANAGER_REQ_VCONN_SWAP, PE_VCS_Send_Swap);
@@ -1911,12 +1909,6 @@ policy_state usbpd_policy_drs_dfp_ufp_send_dr_swap(struct policy_data *policy)
 
 	dev_info(pd_data->dev, "%s\n", __func__);
 	pd_data->phy_ops.get_power_role(pd_data, &power_role);
-	
-    /* when PD3.0, set sink Tx NG(RP 180uA) for Send Request Message */
-	if (power_role == USBPD_SOURCE) {
-		if(pd_data->protocol_rx.msg_header.spec_revision >= 2)
-			pd_data->phy_ops.set_rp_control(pd_data, PLUG_CTRL_RP180);
-	}
 
 	if (usbpd_send_ctrl_msg(pd_data, &policy->tx_msg_header,
 				USBPD_DR_Swap, USBPD_DFP, power_role)) {
@@ -2056,12 +2048,6 @@ policy_state usbpd_policy_drs_ufp_dfp_send_dr_swap(struct policy_data *policy)
 
 	dev_info(pd_data->dev, "%s\n", __func__);
 	pd_data->phy_ops.get_power_role(pd_data, &power_role);
-	
-	/* when PD3.0, set sink Tx NG(RP 180uA) for Send Request Message */
-	if (power_role == USBPD_SOURCE) {
-		if(pd_data->protocol_rx.msg_header.spec_revision >= 2)
-			pd_data->phy_ops.set_rp_control(pd_data, PLUG_CTRL_RP180);
-	}
 
 	if (usbpd_send_ctrl_msg(pd_data, &policy->tx_msg_header,
 				USBPD_DR_Swap, USBPD_UFP, power_role)) {
@@ -2185,10 +2171,6 @@ policy_state usbpd_policy_prs_src_snk_send_swap(struct policy_data *policy)
 
 	/* PD State Inform for AP */
 	dev_info(pd_data->dev, "%s\n", __func__);
-	
-	/* when PD3.0, set sink Tx NG(RP 180uA) for Send Request Message */
-	if(pd_data->protocol_rx.msg_header.spec_revision >= 2)
-		pd_data->phy_ops.set_rp_control(pd_data, PLUG_CTRL_RP180);
 
 	/* Read Data Role */
 	pd_data->phy_ops.get_data_role(pd_data, &data_role);
@@ -2289,7 +2271,6 @@ policy_state usbpd_policy_prs_src_snk_transition_to_off(struct policy_data *poli
 
 	/* VBUS off */
 	pd_data->phy_ops.set_otg_control(pd_data, 0);
-	pd_data->phy_ops.set_rp_control(pd_data, PLUG_CTRL_RP80);
 
 	pr_info("%s, %d\n", __func__, manager->acc_type);
 
@@ -2363,9 +2344,6 @@ policy_state usbpd_policy_prs_src_snk_wait_source_on(struct policy_data *policy)
 			dev_info(pd_data->dev, "got PSRDY.\n");
 			pd_data->counter.swap_hard_reset_counter = 0;
 
-			/* not receive Src_Cap, turns on snk_wait_for_caps */
-			pd_data->phy_ops.set_cc_control(pd_data, USBPD_CC_OFF);
-			
 			/* Message ID Clear */
 			usbpd_init_counters(pd_data);
 			pd_data->counter.hard_reset_counter = 0;

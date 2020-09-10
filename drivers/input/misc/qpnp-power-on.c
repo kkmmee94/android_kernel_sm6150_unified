@@ -998,12 +998,10 @@ static int qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 	struct qpnp_pon_config *cfg = NULL;
 	u8  pon_rt_bit = 0;
 	u32 key_status;
-	uint pon_rt_sts, pon_rt_sts_ori;
+	uint pon_rt_sts;
 	u64 elapsed_us;
 	int rc;
-	u8 first = 1;
 
-again:
 	cfg = qpnp_get_cfg(pon, pon_type);
 	if (!cfg)
 		return -EINVAL;
@@ -1021,13 +1019,10 @@ again:
 		}
 	}
 
-	if (first) {
-		/* Check the RT status to get the current status of the line */
-		rc = qpnp_pon_read(pon, QPNP_PON_RT_STS(pon), &pon_rt_sts_ori);
-		if (rc)
-			return rc;
-		pon_rt_sts = pon_rt_sts_ori;
-	}
+	/* Check the RT status to get the current status of the line */
+	rc = qpnp_pon_read(pon, QPNP_PON_RT_STS(pon), &pon_rt_sts);
+	if (rc)
+		return rc;
 
 	switch (cfg->pon_type) {
 	case PON_KPDPWR:
@@ -1046,8 +1041,8 @@ again:
 		return -EINVAL;
 	}
 
-	pr_debug("PMIC input: code=%d, status=0x%02X, 0x%02X\n", cfg->key_code,
-		pon_rt_sts_ori, pon_rt_sts);
+	pr_debug("PMIC input: code=%d, status=0x%02X\n", cfg->key_code,
+		pon_rt_sts);
 	key_status = pon_rt_sts & pon_rt_bit;
 
 	if (pon->kpdpwr_dbc_enable && cfg->pon_type == PON_KPDPWR) {
@@ -1055,21 +1050,19 @@ again:
 			pon->kpdpwr_last_release_time = ktime_get();
 	}
 
-	if (!(cfg->old_state && !!key_status)) {
-		/*
-		 * Simulate a press event in case release event occurred without a press
-		 * event
-		 */
-		if (!cfg->old_state && !key_status) {
-			input_report_key(pon->pon_input, cfg->key_code, 1);
-			input_sync(pon->pon_input);
-		}
-
-		input_report_key(pon->pon_input, cfg->key_code, key_status);
+	/*
+	 * Simulate a press event in case release event occurred without a press
+	 * event
+	 */
+	if (!cfg->old_state && !key_status) {
+		input_report_key(pon->pon_input, cfg->key_code, 1);
 		input_sync(pon->pon_input);
-		pr_info("%s %s: %d, 0x%x, 0x%x, %d\n", SECLOG, __func__, cfg->key_code, pon_rt_sts_ori, pon_rt_sts, !!key_status);
-	} else
-		pr_debug("%s %s: %d, 0x%x, 0x%x, %d (skip)\n", SECLOG, __func__, cfg->key_code, pon_rt_sts_ori, pon_rt_sts, !!key_status);
+	}
+
+	input_report_key(pon->pon_input, cfg->key_code, key_status);
+	input_sync(pon->pon_input);
+
+	pr_info("%s %s: %d, 0x%x, %d\n", SECLOG, __func__, cfg->key_code, pon_rt_sts, !!key_status);
 
 #if defined(CONFIG_SEC_PM)
 	/* RESIN is used for VOL DOWN key, it should report the keycode for kernel panic */
@@ -1092,18 +1085,6 @@ again:
 #endif
 
 	cfg->old_state = !!key_status;
-
-	if (first) {
-		first = 0;
-		pon_rt_sts &= ~pon_rt_bit;
-		if (pon_rt_sts & QPNP_PON_RESIN_N_SET) {
-			pon_type = PON_RESIN;
-			goto again;
-		} else if (pon_rt_sts & QPNP_PON_KPDPWR_N_SET) {
-			pon_type = PON_KPDPWR;
-			goto again;
-		}
-	}
 
 	return 0;
 }

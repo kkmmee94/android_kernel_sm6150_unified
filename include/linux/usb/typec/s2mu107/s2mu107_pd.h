@@ -728,7 +728,6 @@ typedef struct usbpd_phy_ops {
 #endif
 	void    (*send_ocp_info)(void *);
 #endif
-	void    (*send_pd_info)(void *, int);
 } usbpd_phy_ops_type;
 
 struct policy_data {

@@ -960,7 +960,6 @@ struct s2mu106_muic_data {
 #if defined(CONFIG_HV_MUIC_S2MU106_AFC)
 	bool is_dp_drive;
 	bool is_hvcharger_detected;
-	bool is_requested_step_down;
 #endif
 
 	muic_attached_dev_t new_dev;
@@ -975,7 +974,6 @@ struct s2mu106_muic_data {
 	int qc_retry_cnt;
 	int tx_data;
 	int qc_retry_wait_cnt;
-	int received_tx_data;
 
 	muic_hv_state_t hv_state;
 #endif

@@ -1723,21 +1723,6 @@ static int s2mu106_set_cc_control(void *_data, int val)
 	return ret;
 }
 
-static void s2mu106_send_pd_info(void *_data, int attach)
-{
-#if defined(CONFIG_CCIC_NOTIFIER)
-	struct usbpd_data *data = (struct usbpd_data *) _data;
-	struct s2mu106_usbpd_data *pdic_data = data->phy_driver_data;
-
-	if (attach)
-		s2mu106_ccic_event_work(pdic_data, CCIC_NOTIFY_DEV_BATTERY,
-								CCIC_NOTIFY_ID_POWER_STATUS, 1, 0);
-	else
-		s2mu106_ccic_event_work(pdic_data, CCIC_NOTIFY_DEV_BATTERY,
-								CCIC_NOTIFY_ID_POWER_STATUS, 0, 0);
-#endif
-}
-
 #if defined(CONFIG_TYPEC)
 static void s2mu106_set_pwr_opmode(void *_data, int mode)
 {
@@ -1766,11 +1751,6 @@ static int  s2mu106_cc_instead_of_vbus(void *_data, int enable)
 	struct s2mu106_usbpd_data *pdic_data = data->phy_driver_data;
 	struct i2c_client *i2c = pdic_data->i2c;
 	u8 val;
-	
-	if(pdic_data->cc_instead_of_vbus == enable)
-		return 0;
-
-	pdic_data->cc_instead_of_vbus = enable;
 
 	//Setting for CC Detection with VBUS
 	//It is recognized that VBUS falls when CC line falls.
@@ -2076,9 +2056,9 @@ static void s2mu106_usbpd_set_rp_scr_sel(struct s2mu106_usbpd_data *pdic_data,
 		data &= ~S2MU106_REG_PLUG_CTRL_RP_SEL_MASK;
 		data |= S2MU106_REG_PLUG_CTRL_RP80;
 		s2mu106_usbpd_write_reg(i2c, S2MU106_REG_PLUG_CTRL_PORT, data);
+#if 0
 		s2mu106_usbpd_set_threshold(pdic_data, PLUG_CTRL_RD,
 						S2MU106_THRESHOLD_214MV);
-#if 0
 		s2mu106_usbpd_set_threshold(pdic_data, PLUG_CTRL_RP,
 						S2MU106_THRESHOLD_1628MV);
 #endif
@@ -2088,9 +2068,9 @@ static void s2mu106_usbpd_set_rp_scr_sel(struct s2mu106_usbpd_data *pdic_data,
 		data &= ~S2MU106_REG_PLUG_CTRL_RP_SEL_MASK;
 		data |= S2MU106_REG_PLUG_CTRL_RP180;
 		s2mu106_usbpd_write_reg(i2c, S2MU106_REG_PLUG_CTRL_PORT, data);
+#if 0
 		s2mu106_usbpd_set_threshold(pdic_data, PLUG_CTRL_RD,
 						S2MU106_THRESHOLD_428MV);
-#if 0
 		s2mu106_usbpd_set_threshold(pdic_data, PLUG_CTRL_RP,
 						S2MU106_THRESHOLD_2057MV);
 #endif
@@ -2100,9 +2080,9 @@ static void s2mu106_usbpd_set_rp_scr_sel(struct s2mu106_usbpd_data *pdic_data,
 		data &= ~S2MU106_REG_PLUG_CTRL_RP_SEL_MASK;
 		data |= S2MU106_REG_PLUG_CTRL_RP330;
 		s2mu106_usbpd_write_reg(i2c, S2MU106_REG_PLUG_CTRL_PORT, data);
-		s2mu106_usbpd_set_threshold(pdic_data, PLUG_CTRL_RD,
-						S2MU106_THRESHOLD_814MV);
 #if 0
+		s2mu106_usbpd_set_threshold(pdic_data, PLUG_CTRL_RD,
+						S2MU106_THRESHOLD_428MV);
 		s2mu106_usbpd_set_threshold(pdic_data, PLUG_CTRL_RP,
 						S2MU106_THRESHOLD_2057MV);
 #endif
@@ -3081,7 +3061,7 @@ static void s2mu106_usbpd_otg_attach(struct s2mu106_usbpd_data *pdic_data)
 #if defined(CONFIG_USB_HOST_NOTIFY)
 	if (!is_blocked(o_notify, NOTIFY_BLOCK_TYPE_HOST)) {
 #ifdef CONFIG_PM_S2MU106
-		s2mu106_usbpd_check_vbus(pdic_data, 800, VBUS_OFF);
+		s2mu106_usbpd_check_vbus(pdic_data, 80, VBUS_OFF);
 #endif
 		s2mu106_vbus_turn_on_ctrl(pdic_data, VBUS_ON);
 	}
@@ -3557,7 +3537,6 @@ static void s2mu106_usbpd_detach_init(struct s2mu106_usbpd_data *pdic_data)
 	pdic_data->pd_vbus_short_check = false;
 	pdic_data->vbus_short = false;
 	pdic_data->is_killer = false;
-	pdic_data->cc_instead_of_vbus = 0;
 	if (pdic_data->regulator_en)
 		ret = regulator_disable(pdic_data->regulator);
 #ifdef CONFIG_BATTERY_SAMSUNG
@@ -3911,7 +3890,6 @@ static void s2mu106_usbpd_plug_work(struct work_struct *work)
 	s2mu106_irq_thread(-1, pdic_data);
 }
 
-#ifdef S2MU106_TA_DEBUG
 static void s2mu106_usbpd_poll_check(struct work_struct *work)
 {
 	struct s2mu106_usbpd_data *pdic_data =
@@ -3921,7 +3899,6 @@ static void s2mu106_usbpd_poll_check(struct work_struct *work)
 
 	schedule_delayed_work(&pdic_data->s2mu106_poll_check, msecs_to_jiffies(30000));
 }
-#endif
 
 static int s2mu106_usbpd_reg_init(struct s2mu106_usbpd_data *_data)
 {
@@ -4356,6 +4333,7 @@ static int s2mu106_usbpd_probe(struct i2c_client *i2c,
 	INIT_DELAYED_WORK(&pdic_data->water_detect_handler, s2mu106_pdic_water_detect_handler);
 	INIT_DELAYED_WORK(&pdic_data->water_dry_handler, s2mu106_pdic_water_dry_handler);
 	INIT_DELAYED_WORK(&pdic_data->plug_work, s2mu106_usbpd_plug_work);
+	INIT_DELAYED_WORK(&pdic_data->s2mu106_poll_check, s2mu106_usbpd_poll_check);
 	ret = s2mu106_usbpd_irq_init(pdic_data);
 	if (ret) {
 		dev_err(dev, "%s: failed to init irq(%d)\n", __func__, ret);
@@ -4403,10 +4381,7 @@ static int s2mu106_usbpd_probe(struct i2c_client *i2c,
 
 	dev_info(dev, "%s s2mu106 usbpd driver uploaded!\n", __func__);
 	
-#ifdef S2MU106_TA_DEBUG
-	INIT_DELAYED_WORK(&pdic_data->s2mu106_poll_check, s2mu106_usbpd_poll_check);
 	schedule_delayed_work(&pdic_data->s2mu106_poll_check, msecs_to_jiffies(30000));
-#endif
 
 	return 0;
 
@@ -4518,7 +4493,6 @@ static usbpd_phy_ops_type s2mu106_ops = {
 	.get_vbus_short_check	= s2mu106_get_vbus_short_check,
 	.pd_vbus_short_check	= s2mu106_pd_vbus_short_check,
 	.set_cc_control		= s2mu106_set_cc_control,
-	.send_pd_info		= s2mu106_send_pd_info,
 #if defined(CONFIG_CHECK_CTYPE_SIDE) || defined(CONFIG_CCIC_SYSFS)
 	.get_side_check		= s2mu106_get_side_check,
 #endif

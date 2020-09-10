@@ -1821,21 +1821,6 @@ static int s2mu107_set_cc_control(void *_data, int val)
 	return ret;
 }
 
-static void s2mu107_send_pd_info(void *_data, int attach)
-{
-#if defined(CONFIG_CCIC_NOTIFIER)
-	struct usbpd_data *data = (struct usbpd_data *) _data;
-	struct s2mu107_usbpd_data *pdic_data = data->phy_driver_data;
-
-	if (attach)
-		s2mu107_ccic_event_work(pdic_data, CCIC_NOTIFY_DEV_BATTERY,
-								CCIC_NOTIFY_ID_POWER_STATUS, 1, 0);
-	else
-		s2mu107_ccic_event_work(pdic_data, CCIC_NOTIFY_DEV_BATTERY,
-								CCIC_NOTIFY_ID_POWER_STATUS, 0, 0);
-#endif
-}
-
 static int s2mu107_set_rp_control(void *_data, int val)
 {
 	struct usbpd_data *data = (struct usbpd_data *) _data;
@@ -4573,7 +4558,6 @@ static usbpd_phy_ops_type s2mu107_ops = {
 	.get_vbus_short_check	= s2mu107_get_vbus_short_check,
 	.pd_vbus_short_check	= s2mu107_pd_vbus_short_check,
 	.set_cc_control		= s2mu107_set_cc_control,
-	.send_pd_info		= s2mu107_send_pd_info,
 #if defined(CONFIG_CHECK_CTYPE_SIDE) || defined(CONFIG_CCIC_SYSFS)
 	.get_side_check		= s2mu107_get_side_check,
 #endif

@@ -219,6 +219,5 @@ extern muic_attached_dev_t hv_muic_check_id_err(struct s2mu107_muic_data *muic_d
 		muic_attached_dev_t new_dev);
 #ifdef CONFIG_HV_MUIC_VOLTAGE_CTRL
 extern int s2mu107_muic_afc_set_voltage(int vol);
-extern int s2mu107_muic_afc_get_voltage(void);
 #endif
 #endif /* __S2MU107_MUIC_HV_H__ */

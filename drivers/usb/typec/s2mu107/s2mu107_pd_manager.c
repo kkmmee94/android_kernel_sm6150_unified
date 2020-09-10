@@ -152,9 +152,6 @@ int usbpd_manager_select_pps(int num, int ppsVol, int ppsCur)
 	}
 
 	mutex_lock(&manager->pdo_mutex);
-	if (manager->flash_mode == 1)
-		goto exit;
-
 	if (pd_data->policy.plug_valid == 0) {
 		pr_info(" %s : PDO(%d) is ignored becasue of usbpd is detached\n",
 				__func__, num);
@@ -291,9 +288,6 @@ int usbpd_manager_pps_enable(int num, int ppsVol, int ppsCur, int enable)
 	}
 
 	mutex_lock(&manager->pdo_mutex);
-	if (manager->flash_mode == 1)
-		goto exit;
-	
 	if (pd_data->policy.plug_valid == 0) {
 		pr_info(" %s : PDO(%d) is ignored becasue of usbpd is detached\n",
 				__func__, num);
@@ -390,12 +384,6 @@ void pdo_ctrl_by_flash(bool mode)
 {
 	struct usbpd_data *pd_data = pd_noti.pusbpd;
 	struct usbpd_manager_data *manager = &pd_data->manager;
-#if defined(CONFIG_PDIC_PD30)
-#if defined(CONFIG_CCIC_AUTO_PPS)
-	int pps_enable = 0;
-#endif
-#endif
-
 
 	pr_info("%s: mode(%d)\n", __func__, mode);
 
@@ -404,20 +392,6 @@ void pdo_ctrl_by_flash(bool mode)
 		manager->flash_mode = 1;
 	else
 		manager->flash_mode = 0;
-
-#if defined(CONFIG_PDIC_PD30)
-#if defined(CONFIG_CCIC_AUTO_PPS)
-	if (pd_data->ip_num == S2MU107_USBPD_IP) {
-		pd_data->phy_ops.get_pps_enable(pd_data, &pps_enable);
-
-		if (pps_enable == PPS_ENABLE) {
-			pr_info(" %s : forced pps disable\n", __func__);
-			pd_data->phy_ops.pps_enable(pd_data, PPS_DISABLE);
-			pd_data->phy_ops.force_pps_disable(pd_data);
-		}
-	}
-#endif
-#endif
 
 	if (pd_noti.sink_status.selected_pdo_num != 0) {
 		pd_noti.sink_status.selected_pdo_num = 1;
@@ -880,6 +854,8 @@ void usbpd_manager_plug_attach(struct device *dev, muic_attached_dev_t new_dev)
 	struct usbpd_manager_data *manager = &pd_data->manager;
 	//struct s2mu107_usbpd_data *pdic_data = pd_data->phy_driver_data;
 
+	CC_NOTI_ATTACH_TYPEDEF pd_notifier;
+
 	if (new_dev == ATTACHED_DEV_TYPE3_CHARGER_MUIC) {
 		if (policy->send_sink_cap || (manager->ps_rdy == 1 &&
 		manager->prev_available_pdo != pd_noti.sink_status.available_pdo_num)) {
@@ -889,8 +865,17 @@ void usbpd_manager_plug_attach(struct device *dev, muic_attached_dev_t new_dev)
 			pd_noti.event = PDIC_NOTIFY_EVENT_PD_SINK;
 		manager->ps_rdy = 1;
 		manager->prev_available_pdo = pd_noti.sink_status.available_pdo_num;
-		pd_data->phy_ops.send_pd_info(pd_data, 1);
+		pd_notifier.src = CCIC_NOTIFY_DEV_CCIC;
+		pd_notifier.dest = CCIC_NOTIFY_DEV_BATTERY;
+		pd_notifier.id = CCIC_NOTIFY_ID_POWER_STATUS;
+		pd_notifier.attach = 1;
+		pd_notifier.pd = &pd_noti;
+#if defined(CONFIG_CCIC_NOTIFIER)
+		ccic_notifier_notify((CC_NOTI_TYPEDEF *)&pd_notifier, &pd_noti, 1/* pdic_attach */);
+#endif
+		//ccic_event_work(pdic_data, CCIC_NOTIFY_DEV_BATTERY, CCIC_NOTIFY_ID_POWER_STATUS, 1, 0);
 	}
+
 #else
 	struct usbpd_data *pd_data = dev_get_drvdata(dev);
 	struct usbpd_manager_data *manager = &pd_data->manager;
@@ -909,6 +894,7 @@ void usbpd_manager_plug_detach(struct device *dev, bool notify)
 	struct usbpd_data *pd_data = dev_get_drvdata(dev);
 	struct usbpd_manager_data *manager = &pd_data->manager;
 
+	CC_NOTI_ATTACH_TYPEDEF pd_notifier;
 	pr_info("%s: usbpd plug detached\n", __func__);
 
 	usbpd_policy_reset(pd_data, PLUG_DETACHED);
@@ -918,7 +904,14 @@ void usbpd_manager_plug_detach(struct device *dev, bool notify)
 
 	if (pd_noti.event != PDIC_NOTIFY_EVENT_DETACH) {
 		pd_noti.event = PDIC_NOTIFY_EVENT_DETACH;		
-        pd_data->phy_ops.send_pd_info(pd_data, 0);
+		pd_notifier.src = CCIC_NOTIFY_DEV_CCIC;
+		pd_notifier.dest = CCIC_NOTIFY_DEV_BATTERY;
+		pd_notifier.id = CCIC_NOTIFY_ID_POWER_STATUS;
+		pd_notifier.attach = 0;
+		pd_notifier.pd = &pd_noti;
+#if defined(CONFIG_CCIC_NOTIFIER)
+		ccic_notifier_notify((CC_NOTI_TYPEDEF *)&pd_notifier, &pd_noti, 0/* pdic_attach */);
+#endif
 	}
 #endif
 #endif

@@ -111,19 +111,11 @@ static bool sec_direct_chg_set_switching_charge(
 	pr_info("%s: charger_mode(%s->%s)\n", __func__,
 		sec_direct_charger_mode_str[charger->charger_mode_main],
 		sec_direct_charger_mode_str[charger_mode]);
+	charger->charger_mode_main = charger_mode;
 
-	if ((charger->charger_mode_main != charger_mode)
-#if defined(CONFIG_LSI_IFPMIC)
-		|| (charger_mode == SEC_BAT_CHG_MODE_BUCK_OFF)
-#endif
-		) {
-		charger->charger_mode_main = charger_mode;
-
-		value.intval = charger_mode;
-		psy_do_property(charger->pdata->main_charger_name, set,
-			POWER_SUPPLY_PROP_CHARGING_ENABLED, value);
-	}
-
+	value.intval = charger_mode;
+	psy_do_property(charger->pdata->main_charger_name, set,
+		POWER_SUPPLY_PROP_CHARGING_ENABLED, value);
 
 	return true;
 }

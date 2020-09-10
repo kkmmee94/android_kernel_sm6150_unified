@@ -235,8 +235,7 @@ SEC_A71_EUR_DTBO := \
 				sm7150-sec-a71-eur-overlay-r03.dtbo \
 				sm7150-sec-a71-eur-overlay-r04.dtbo \
 				sm7150-sec-a71-eur-overlay-r05.dtbo \
-				sm7150-sec-a71-eur-overlay-r06.dtbo \
-                sm7150-sec-a71-eur-overlay-r07.dtbo
+				sm7150-sec-a71-eur-overlay-r06.dtbo
 
 
 # A70S(SM7150)

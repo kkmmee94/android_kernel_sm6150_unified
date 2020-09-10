@@ -105,8 +105,6 @@ static int wcin_is_valid(u8 reg)
 	return 0;
 }
 
-#define REG_MODE_BUCK_OFF_FOR_FLASH (1<<4)	// for camera flash + TA.
-#define REG_MODE_BST (1<<5)
 #define REG_MODE_TX (1<<3)
 #define REG_MODE_OTG (1<<2)
 #define REG_MODE_OTG_TX (3<<2)
@@ -133,9 +131,7 @@ static void regmode_vote(struct s2mu106_charger_data *charger, int voter, int va
 	pr_info("%s: vote_status: 0x%x, set_val: 0x%x, cable_type(%d), STATUS0(0x%x)\n",
 			__func__, vote_status, set_val, charger->cable_type, reg);
 
-	if ((vote_status & REG_MODE_BUCK_OFF_FOR_FLASH) || (vote_status & REG_MODE_BST)) {
-		set_val = val;
-	} else if (vote_status & REG_MODE_BUCK) {
+	if (vote_status & REG_MODE_BUCK) {
 		if (vote_status & REG_MODE_OTG_TX) {
 			if (((vote_status & REG_MODE_OTG) && 
 					(!is_wireless_type(charger->cable_type) || (is_wireless_type(charger->cable_type) && !wcin_is_valid(reg))))
@@ -201,16 +197,7 @@ static void regmode_vote(struct s2mu106_charger_data *charger, int voter, int va
 		} else {
 			pr_info("%s: OTG_TX_BUCK -> OTG or TX Abnormal\n", __func__);
 		}
-	} else if (set_val & REG_MODE_BST) {
-		s2mu106_update_reg(charger->i2c, S2MU106_CHG_CTRL0, BST_MODE, REG_MODE_MASK);
-	} else if (set_val & REG_MODE_BUCK_OFF_FOR_FLASH) {
-		/* async mode */
-		s2mu106_update_reg(charger->i2c, 0x3A, 0x03, 0x03);
-		usleep_range(1000, 1100);
-		s2mu106_update_reg(charger->i2c,
-			S2MU106_CHG_CTRL0, CHARGER_OFF_MODE, REG_MODE_MASK);
-		/* auto async mode */
-		s2mu106_update_reg(charger->i2c, 0x3A, 0x01, 0x03);
+		s2mu106_update_reg(charger->i2c, 0x3A, 0x01, 0x03); // SET_Auto Async
 	} else {
 		s2mu106_update_reg(charger->i2c, 0x3A, 0x01, 0x03); // SET_Auto Async
 		s2mu106_update_reg(charger->i2c,
@@ -316,7 +303,7 @@ static int s2mu106_charger_otg_control(
 		mdelay(10);
 		/* 6. OTG Enable */
 		regmode_vote(charger, REG_MODE_OTG, REG_MODE_OTG);
-		mdelay(20);
+		mdelay(10);
 
 		/* OTG Fault debounce time set 15ms */
 		s2mu106_update_reg(charger->i2c, 0x94, 0x0C, 0x0C);
@@ -718,9 +705,6 @@ static bool s2mu106_chg_init(struct s2mu106_charger_data *charger)
 		s2mu106_update_reg(charger->i2c, 0x90, 0x00, 0x04);
 	}
 #endif
-
-	/* OTG Fault debounce time set 15ms */
-	s2mu106_update_reg(charger->i2c, 0x94, 0x0C, 0x0C);
 
 	return true;
 }
@@ -1153,7 +1137,6 @@ static int s2mu106_chg_set_property(struct power_supply *psy,
 		}
 		if (is_nocharge_type(charger->cable_type)) {
 			pr_err("[DEBUG]%s:[BATT] Type Battery\n", __func__);
-			regmode_vote(charger, REG_MODE_BUCK_OFF_FOR_FLASH | REG_MODE_BST, 0);
 			value.intval = 0;
 		} else {
 			value.intval = 1;
@@ -1267,8 +1250,7 @@ static int s2mu106_chg_set_property(struct power_supply *psy,
 				/* Mask IRQ */
 				s2mu106_update_reg(charger->i2c,
 					S2MU106_CHG_INT2M, 1 << IVR_M_SHIFT, IVR_M_MASK);
-				queue_delayed_work(charger->charger_wqueue, &charger->ivr_work,
-						msecs_to_jiffies(IVR_WORK_DELAY));
+				queue_delayed_work(charger->charger_wqueue, &charger->ivr_work, 0);
 			}
 		}
 		break;
@@ -1422,17 +1404,6 @@ static int s2mu106_chg_set_property(struct power_supply *psy,
 		s2mu106_write_reg(charger->i2c, 0xE3, data);
 		msleep(50);
 		pr_info("%s: reset fuelgauge when surge occur!\n", __func__);
-		break;
-	case POWER_SUPPLY_PROP_ENERGY_AVG:
-		regmode_vote(charger, REG_MODE_BUCK_OFF_FOR_FLASH, REG_MODE_BUCK_OFF_FOR_FLASH);
-		if (val->intval) {
-			pr_info("[DEBUG]%s: FLED turn on charger driver\n", __func__);
-			usleep_range(1000, 1100);
-		//	regmode_vote(charger, REG_MODE_BUCK_OFF_FOR_FLASH | REG_MODE_BST, REG_MODE_BST);
-		} else {
-			pr_info("[DEBUG]%s: FLED turn off charger driver\n", __func__);
-			regmode_vote(charger, REG_MODE_BUCK_OFF_FOR_FLASH | REG_MODE_BST, 0);
-		}
 		break;
 	case POWER_SUPPLY_PROP_MAX ... POWER_SUPPLY_EXT_PROP_MAX:
 		switch (ext_psp) {

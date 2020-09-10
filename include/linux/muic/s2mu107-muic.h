@@ -726,7 +726,6 @@ struct s2mu107_muic_data {
 #if defined(CONFIG_HV_MUIC_S2MU107_AFC)
 	bool is_dp_drive;
 	bool is_hvcharger_detected;
-	bool is_requested_step_down;
 #endif
 #if IS_ENABLED(CONFIG_HICCUP_CHARGER)
 	bool is_hiccup_mode;
@@ -743,7 +742,6 @@ struct s2mu107_muic_data {
 	int qc_retry_cnt;
 	int tx_data;
 	int qc_retry_wait_cnt;
-	int received_tx_data;
 
 	muic_hv_state_t hv_state;
 #endif

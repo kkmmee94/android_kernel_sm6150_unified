@@ -133,11 +133,6 @@ config SUPPORT_HV_CTRL
 	 help
 	 Say Y to include support for controlling voltage
 
-config LSI_IFPMIC
-	 bool "support for lsi ifpmic"
-	 help
-	 Say Y to include support for lsi ifpmic
-
 # Fuel Gauge
 
 config FUELGAUGE_S2MU106

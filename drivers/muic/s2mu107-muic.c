@@ -2022,7 +2022,6 @@ static int s2mu107_muic_probe(struct platform_device *pdev)
 		goto err_kfree1;
 
 	muic_pdata->muic_afc_set_voltage_cb = s2mu107_muic_afc_set_voltage;
-	muic_pdata->muic_afc_get_voltage_cb = s2mu107_muic_afc_get_voltage;
 	muic_data->pdata = muic_pdata;
 
 #if IS_ENABLED(CONFIG_MUIC_MANAGER)

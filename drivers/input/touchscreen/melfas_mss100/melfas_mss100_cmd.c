@@ -161,16 +161,6 @@ static void cmd_fw_update(void *device_data)
 
 	sec_cmd_set_default_result(sec);
 
-#if defined(CONFIG_SAMSUNG_PRODUCT_SHIP)
-	if (sec->cmd_param[0] == 1) {
-		input_err(true, &info->client->dev, "%s: user_ship, skip\n", __func__);
-		snprintf(buff, sizeof(buff), "OK");
-		sec_cmd_set_cmd_result(sec, buff, strnlen(buff, sizeof(buff)));
-		sec->cmd_state = SEC_CMD_STATUS_OK;
-		return;
-	}
-#endif
-
 	if (info->ic_status == PWR_OFF) {
 		input_err(true, &info->client->dev, "%s: Touch is stopped!\n", __func__);
 		snprintf(buff, sizeof(buff), "%s", "NG");

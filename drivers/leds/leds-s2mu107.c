@@ -25,10 +25,10 @@
 #define CONTROL_I2C	0
 #define CONTROL_GPIO	1
 
-static struct s2mu107_fled_data *g_fled_data;
+struct s2mu107_fled_data *g_fled_data;
 
 extern struct class *camera_class;
-static struct device *flash_dev;
+struct device *flash_dev;
 extern struct device *cam_dev_flash;
 
 static char *s2mu107_fled_mode_string[] = {

@@ -414,7 +414,7 @@ static void muic_cleanup_switch_dev_cb(void)
 	pr_info("%s: done\n", __func__);
 }
 
-static struct muic_platform_data muic_pdata;
+extern struct muic_platform_data muic_pdata;
 
 /* func : set_switch_sel
  * switch_sel value get from bootloader comand line
@@ -522,20 +522,9 @@ static int muic_init_gpio_cb(void *data, int switch_sel)
 int muic_afc_set_voltage(int voltage)
 {
 	struct muic_platform_data *pdata = &muic_pdata;
-    pr_info("%s \n", __func__);
+
 	if (pdata && pdata->muic_afc_set_voltage_cb)
 		return pdata->muic_afc_set_voltage_cb(voltage);
-
-	pr_err("%s: cannot supported\n", __func__);
-	return -ENODEV;
-}
-
-int muic_afc_get_voltage(void)
-{
-	struct muic_platform_data *pdata = &muic_pdata;
-
-	if (pdata && pdata->muic_afc_get_voltage_cb)
-		return pdata->muic_afc_get_voltage_cb();
 
 	pr_err("%s: cannot supported\n", __func__);
 	return -ENODEV;
@@ -1433,9 +1422,6 @@ int muic_core_hv_state_manager(struct muic_platform_data *muic_pdata,
 		case HV_TRANS_FAST_CHARGE_PING_RESPONSE:
 			next_state = HV_STATE_FAST_CHARGE_COMMUNICATION;
 			break;
-		case HV_TRANS_FAST_CHARGE_REOPEN:
-			next_state = HV_STATE_FAST_CHARGE_ADAPTOR;
-			break;
 		default:
 			skip_trans = true;
 			break;
@@ -1567,28 +1553,42 @@ static void muic_init_cable_data_collect_cb(void)
 
 struct muic_platform_data *muic_core_init(void *drv_data)
 {
-	muic_pdata.drv_data = drv_data;
-	muic_pdata.attached_dev = ATTACHED_DEV_NONE_MUIC;
-	muic_pdata.cleanup_switch_dev_cb = muic_cleanup_switch_dev_cb;
-	muic_pdata.is_usb_ready = false;
-	muic_pdata.is_factory_start = false;
-	muic_pdata.is_rustproof = muic_pdata.rustproof_on;
-	muic_pdata.init_switch_dev_cb = muic_init_switch_dev_cb;
-	muic_pdata.init_gpio_cb = muic_init_gpio_cb;
-	muic_pdata.jig_uart_cb = muic_jig_uart_cb,
-	muic_pdata.init_cable_data_collect_cb = muic_init_cable_data_collect_cb,
-#if defined(CONFIG_USE_SAFEOUT)	
-	muic_pdata.set_safeout = muic_set_safeout,
-#endif /* CONFIG_USE_SAFEOUT */
+	struct muic_platform_data *muic_pdata;
+
+	muic_pdata = kzalloc(sizeof(*muic_pdata), GFP_KERNEL);
+	if (unlikely(!muic_pdata)) {
+		pr_err("%s: failed to allocate driver data\n", __func__);
+		return NULL;
+	}
+
+	muic_pdata->drv_data = drv_data;
+	muic_pdata->attached_dev = ATTACHED_DEV_NONE_MUIC;
+	muic_pdata->cleanup_switch_dev_cb = muic_cleanup_switch_dev_cb;
+	muic_pdata->is_usb_ready = false;
+	muic_pdata->is_factory_start = false;
+	muic_pdata->is_rustproof = muic_pdata->rustproof_on;
+	muic_pdata->init_gpio_cb = muic_init_gpio_cb;
+	muic_pdata->jig_uart_cb = muic_jig_uart_cb,
 #if defined(CONFIG_MUIC_HV)
-	muic_pdata.hv_state = HV_STATE_IDLE;
+	muic_pdata->hv_state = HV_STATE_IDLE;
 #endif
 	muic_init_switch_dev_cb();
 
-	return &muic_pdata;
+	return muic_pdata;
 }
 
 void muic_core_exit(struct muic_platform_data *muic_pdata)
 {
 	kfree(muic_pdata);
 }
+
+struct muic_platform_data muic_pdata = {
+	.init_switch_dev_cb	= muic_init_switch_dev_cb,
+	.cleanup_switch_dev_cb	= muic_cleanup_switch_dev_cb,
+	.init_gpio_cb		= muic_init_gpio_cb,
+	.jig_uart_cb		= muic_jig_uart_cb,
+#if defined(CONFIG_USE_SAFEOUT)
+	.set_safeout		= muic_set_safeout,
+#endif /* CONFIG_USE_SAFEOUT */
+	.init_cable_data_collect_cb	= muic_init_cable_data_collect_cb,
+};
