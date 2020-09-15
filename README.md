@@ -44,4 +44,31 @@ https://source.codeaurora.org/quic/la/kernel/msm-4.14/log/?h=msm-4.14.r30
 - Greatly Optimized BatteryLife
 - Over-All Performance & Stability Improved
 
+#### Changelogs:
+
+###### 2.7 E.B.E. ExtremeBetaEdition (Latest)
+
+- CAF & Linux v4.14.117
+- Latest LA.UM.8.9.r1-10400-SM6xx.0 (513d92d87c4aa184aa683dfdc60b80f1bed47eb5) Patched Merged
+- Latest CAF & Linux Changes Merged
+- Upstreamed CFQ & BFQ I/O Schedulers
+- GPU FMAX 800Mhz Supported
+- High Priority Workqueue MHI Added
+- Camera Shared Memory Increased for Better Optimization
+- GPU Snapshot Size Increased for Better Performance
+- Upstreamed CPU Freq Controller
+- Upstreamed Fair Scheduler for Optimization
+- LZ4 Enabled as Default zRAM for Performance Related
+- NTFS FileSystem are Now Supported
+- Additional Debugging Disabled
+- Lot of Memory Leaking Fixed (UPSTREAMED)
+- Optimized Memory Handling for less leakages
+- Samsung IRQ Warnings Deleted
+- IRQ State Error Log Spam Deleted
+- Lots of Overflow Problem Resolved (UPSTREAMED)
+- Improved Log Printing
+- Improved Over-ALL Performance & Stability
+
 #### Donations? 
+
+- Just donate free trial virtual cloud server so that I can release Custom ROMs for our A80
